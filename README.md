@@ -10,13 +10,13 @@ The Teamscale command line interface is used to enable integration into text edi
  $ git clone https://github.com/cqse/teamscale-cli.git
  ```
  
-3. and copy the ```.teamscale-cli.config``` to your user directory:
+3. Copy the ```.teamscale-cli.config``` to your user directory:
  ```bash
  $ cp .teamscale-cli.config ~ 
  ```
  Now edit it and insert all the necessary data.
 
-4. Next put the ```teamscale-cli``` shell script anywhere that is on your local $PATH, so that it can easily be executed.
+4. Put the ```teamscale-cli``` shell script anywhere that is on your local $PATH, so that it can easily be executed.
 
 5. In your editor you can run this as a compile command, but be sure to provide the absolute path to the file in the current editor as the first argument: 
 
