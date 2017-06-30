@@ -16,7 +16,7 @@ The Teamscale command line interface is used to enable integration into text edi
 4. In your editor you can run this as a compile command, but be sure to provide the absolute path to the file in the current editor as the first argument: 
 
 ```bash
-$ teamscale-cli /home/user/project/src/foo/bar.c
+$ teamscale-cli /home/user/project/src/foo/AssumptionViolatedException.java
 AssumptionViolatedException.java:30:0: error: Avoid leaving deprecated classes / methods / fields
 AssumptionViolatedException.java:21:0: error: Avoid leaving deprecated classes / methods / fields
 ```
