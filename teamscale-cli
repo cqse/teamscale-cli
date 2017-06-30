@@ -1,0 +1,8 @@
+#!/bin/bash
+source ~/.teamscale-cli.config
+
+path=$(curl --silent -X PUT --user ${USER}:${API_KEY} -H "Accept: application/json" ${TEAMSCALE_URL}/p/${PROJECT}/path-lookup/ -d "<string-array><java.lang.String>${1}</java.lang.String></string-array>" | jq '.[0]' | sed 's:^"::' | sed 's:"$::')
+
+result=$(curl --silent --user ${USER}:${API_KEY} -H "Accept: application/json" "${TEAMSCALE_URL}/p/${PROJECT}/findings/${path}?blacklisted=excluded&pretty=false&start=0&all=false")
+
+echo $result | jq '.[] | (.location | (.uniformPath | split("/") | .[-1]) + ":" +(.rawStartLine | tostring) +":0: error: ") + .message' | sed 's:^"::' | sed 's:"$::'
