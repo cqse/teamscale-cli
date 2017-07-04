@@ -1,5 +1,23 @@
 #!/bin/bash
-source ~/.teamscale-cli.config
+
+# Check if jq is installed
+command -v jq >/dev/null 2>&1 || { echo >&2 "ERROR: Could not find the 'jq' executable on the path. It is a required dependency, please install it: https://stedolan.github.io/jq/download/"; exit 1; }
+
+TEAMSCALE_CONFIG=~/.teamscale-cli.config
+
+if [ ! -f ${TEAMSCALE_CONFIG} ]; then
+    echo "ERROR: Error file '${TEAMSCALE_CONFIG}' could not be found. Please add it, see template: https://github.com/cqse/teamscale-cli/blob/master/.teamscale-cli.config";
+    exit 1;
+fi
+
+source ${TEAMSCALE_CONFIG}
+
+if [ $# -eq 0 ]; then
+    echo "Teamscale Command-Line Interface";
+    echo "The client will download and display Teamscale findings for a given file as universal error output, so that it can be used as compile command."
+    echo "\$ ${0} <absolute path to file>"
+    exit 1;
+fi
 
 path=$(curl --silent -X PUT --user ${USER}:${API_KEY} -H "Accept: application/json" ${TEAMSCALE_URL}/p/${PROJECT}/path-lookup/ -d "<string-array><java.lang.String>${1}</java.lang.String></string-array>" | jq '.[0]' | sed 's:^"::' | sed 's:"$::')
 
