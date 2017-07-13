@@ -19,8 +19,8 @@ if [ $# -eq 0 ]; then
     exit 1;
 fi
 
-path=$(curl --silent -X PUT --user ${USER}:${API_KEY} -H "Accept: application/json" ${TEAMSCALE_URL}/p/${PROJECT}/path-lookup/ -d "<string-array><java.lang.String>${1}</java.lang.String></string-array>" | jq '.[0]' | sed 's:^"::' | sed 's:"$::')
+path=$(curl --silent -X PUT --user ${USERNAME}:${API_KEY} -H "Accept: application/json" ${TEAMSCALE_URL}/p/${PROJECT}/path-lookup/ -d "<string-array><java.lang.String>${1}</java.lang.String></string-array>" | jq '.[0]' | sed 's:^"::' | sed 's:"$::')
 
-result=$(curl --silent --user ${USER}:${API_KEY} -H "Accept: application/json" "${TEAMSCALE_URL}/p/${PROJECT}/findings/${path}?blacklisted=excluded&pretty=false&start=0&all=false")
+result=$(curl --silent --user ${USERNAME}:${API_KEY} -H "Accept: application/json" "${TEAMSCALE_URL}/p/${PROJECT}/findings/${path}?blacklisted=excluded&pretty=false&start=0&all=false")
 
 echo $result | jq '.[] | (.location | (.uniformPath | split("/") | .[-1]) + ":" +(.rawStartLine | tostring) +":0: error: ") + .message' | sed 's:^"::' | sed 's:"$::'
