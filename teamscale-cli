@@ -6,7 +6,7 @@ command -v jq >/dev/null 2>&1 || { echo >&2 "ERROR: Could not find the 'jq' exec
 TEAMSCALE_CONFIG=~/.teamscale-cli.config
 
 if [ ! -f ${TEAMSCALE_CONFIG} ]; then
-    echo "ERROR: Error file '${TEAMSCALE_CONFIG}' could not be found. Please add it, see template: https://github.com/cqse/teamscale-cli/blob/master/.teamscale-cli.config";
+    echo "ERROR: Config file '${TEAMSCALE_CONFIG}' could not be found. Please add it, see template: https://github.com/cqse/teamscale-cli/blob/master/.teamscale-cli.config";
     exit 1;
 fi
 
