@@ -44,11 +44,11 @@ Add a new *Build Phase* (`New Run Script Phase`) to your project. Enter the foll
 python -c "from teamscale_precommit_client.precommit_client import run;run()" ${SRCROOT} --fail-on-red-findings
 ```
 
-![Configuring the Build Phase in Xcode](xcode_1.png)
+![Configuring the Build Phase in Xcode](config/xcode_1.png)
 
 As you're on a Mac, make sure to use the correct Python version in that snippet, which might be `python3`. The option `--fail-on-red-findings` will fail your Xcode build if new RED findings were found. You might decide to drop that flag. If you've done it right, Xcode will show all findings inlined as seen on the following screenshot:
 
-![Teamscale Findings in Xcode](xcode_2.png)
+![Teamscale Findings in Xcode](config/xcode_2.png)
 
 ### VS Code
 
