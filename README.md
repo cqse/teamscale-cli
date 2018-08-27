@@ -1,28 +1,25 @@
-# Teamscale Command Line Interface
+# Teamscale Precommit Command Line Client
 
-The Teamscale command line interface is used to enable integration into text editors such as VIM, Emacs or Sublime, by providing findings in a standard error format that can be interpreted like compile time errors. 
+The Teamscale precommit command line interface allows you to integrate precommit analysis in editors or IDEs such as VS Code, Emacs or Sublime, by providing findings in a standard error format that can be interpreted like compile time errors.
 
 ## Setup
 
-1. Install ```jq```: https://stedolan.github.io/jq/download/
-2. Clone this repository:
+1. Install ```libgit2```: https://libgit2.org
+
+2. Install this client via pip:
  ```bash
- $ git clone https://github.com/cqse/teamscale-cli.git
+ $ pip install teamscale-cli
  ```
- 
-3. Copy the ```.teamscale-cli.config``` to your user directory:
+
+3. Copy the configuration file ```config/.teamscale-precommit.config``` to the root directory of the repository you want to analyze:
+ Edit it and insert all the necessary data.
+
+4. Use this script as compile or build command in your editor or IDE. See examples in the ```config``` folder for how to accomplish this.
+ Provide a file or folder within your repository as input. The general invocation looks like this:
+
  ```bash
- $ cp .teamscale-cli.config ~ 
+ $ python -c "from teamscale_precommit_client.precommit_client import run;run()" ANY_FILE_OR_FOLDER_IN_YOUR_REPO
  ```
- Now edit it and insert all the necessary data.
 
-4. Put the ```teamscale-cli``` shell script anywhere that is on your local $PATH, so that it can easily be executed.
-
-5. In your editor you can run this as a compile command, but be sure to provide the absolute path to the file in the current editor as the first argument: 
-
-```bash
-$ teamscale-cli /home/user/project/src/foo/AssumptionViolatedException.java
-AssumptionViolatedException.java:30:0: error: Avoid leaving deprecated classes / methods / fields
-AssumptionViolatedException.java:21:0: error: Avoid leaving deprecated classes / methods / fields
-```
+5. The behavior of the client can be tweaked with several arguments. Run the client without any arguments to get the usage.
 
