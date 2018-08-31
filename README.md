@@ -54,6 +54,11 @@ As you're on a Mac, make sure to use the correct Python version in that snippet,
 
 Add a new task (`Configure Tasks`) and name it `Teamscale Precommit Analysis` or similar. VS Code will open a sample `tasks.json` for you to edit. Locate `config/teamscale-precommit-vscode-task.json` in this repo. Copy and paste the snippet and modify to your needs (e.g. `python` vs. `python3`).
 
+### Vim
+
+Locate `config/teamscale.vim` and put in into `~/.vim/compiler`. Modify to your needs (e.g. `python` vs. `python3`).
+This should allow you to do `:compiler teamscale` and `:make %`. Then you should be able to use your usual workflow (e.g. `:cn`) to go through the findings.
+
 
 ## More details
 
