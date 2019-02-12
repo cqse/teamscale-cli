@@ -124,7 +124,7 @@ def configure_precommit_client(config_file, repo_path, parsed_args):
 def run():
     """Performs precommit analysis."""
     parsed_args = _parse_args()
-    repo_path = get_repo_root_from_file_in_repo(parsed_args.path[0])
+    repo_path = get_repo_root_from_file_in_repo(os.path.normpath(parsed_args.path[0]))
     if not repo_path or not os.path.exists(repo_path) or not os.path.isdir(repo_path):
         raise RuntimeError('Invalid path to file in repository: %s' % repo_path)
 
