@@ -5,7 +5,7 @@ The Teamscale precommit command line interface allows you to integrate precommit
 
 ## Installation
 
-1. Install ```libgit2```: https://libgit2.org
+1. Install ```libgit2```: https://libgit2.org (not necessary on Windows as it's already package with the pygit dependency)
 
 2. Install this client via pip:
  ```bash
