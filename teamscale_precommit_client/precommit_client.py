@@ -18,11 +18,12 @@ _PRECOMMIT_CONFIG_FILENAME = '.teamscale-precommit.config'
 
 class PrecommitClient:
     """Client for precommit analysis"""
-    def __init__(self, teamscale_config, repository_path, analyzed_file=None):
+    def __init__(self, teamscale_config, repository_path, analyzed_file=None, verify=True):
         """Constructor"""
         self.repository_path = repository_path
         self.teamscale_client = TeamscaleClient(teamscale_config.url, teamscale_config.username,
-                                                teamscale_config.access_token, teamscale_config.project_id)
+                                                teamscale_config.access_token, teamscale_config.project_id,
+                                                verify)
         self.analyzed_file = analyzed_file
 
     def upload_precommit_data(self):
@@ -114,12 +115,23 @@ def _parse_args():
                         const=True, default=False,
                         help='When this option is set, the precommit client will exit with a non-zero return value '
                              'whenever RED findings were among the precommit findings. (default: False)')
+    parser.add_argument('--verify', default=True, type=_bool_or_string,
+                        help="Path to different certificate file. See requests' verify parameter in"
+                             "http://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification"
+                             "Other possible values: True, False (default: True)")
     return parser.parse_args()
+
+def _bool_or_string(string):
+    if string in ['t', 'true', 'True']:
+        return True
+    if string in ['f', 'false', 'False']:
+        return False
+    return string
 
 def configure_precommit_client(config_file, repo_path, parsed_args):
     """Reads the precommit analysis configuration and creates a precommit client with the corresponding config."""
     return PrecommitClient(teamscale_config=TeamscaleConfig(config_file), repository_path=repo_path,
-                           analyzed_file=parsed_args.path[0])
+                           analyzed_file=parsed_args.path[0], verify=parsed_args.verify)
 
 def run():
     """Performs precommit analysis."""

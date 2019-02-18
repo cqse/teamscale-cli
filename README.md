@@ -85,12 +85,26 @@ By default, the precommit analysis client will fetch new findings in the changes
                         When this option is set, existing findings in the
                         specified file are fetched in addition to precommit
                         findings. (default: False)
-  --fetch-all-findings  When this option is set, all existing findings in the
+  --fetch-all-findings
+                        When this option is set, all existing findings in the
                         repo are fetched in addition to precommit findings.
                         (default: False)
 ```
 
 Be cautious using these flags as there might be many findings in your code base.
+
+### Other command line options
+
+```
+  --fail-on-red-findings
+                        When this option is set, the precommit client will exit
+                        with a non-zero return value whenever RED findings were
+                        among the precommit findings. (default: False)
+  --verify
+                        Path to different certificate file.  See requests' verify
+                        parameter in http://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification
+                        Other possible values: True, False (default: True)
+```
 
 ## Limits
 
