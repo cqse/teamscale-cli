@@ -150,13 +150,12 @@ def run():
     deleted_files = get_deleted_files(precommit_client.repository_path)
     if changed_files or deleted_files:
         precommit_client.upload_precommit_data(changed_files, deleted_files)
+        # We need to wait for the analysis to pick up the new code otherwise we get old findings.
+        # This might not be needed in future releases of Teamscale.
+        time.sleep(2)
     elif not parsed_args.fetch_all_findings and not parsed_args.fetch_existing_findings:
         print("No changed files found. Forgot to `git add` new files?")
         exit(0)
-
-    # We need to wait for the analysis to pick up the new code otherwise we get old findings.
-    # This might not be needed in future releases of Teamscale.
-    time.sleep(2)
 
     print('Waiting for precommit analysis results...')
     print('')
