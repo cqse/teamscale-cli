@@ -28,28 +28,16 @@ class PrecommitClient:
                                                 verify)
         self.analyzed_file = analyzed_file
 
-    def upload_precommit_data(self, include_existing_findings=False,
-                              include_all_findings=False):
+    def upload_precommit_data(self, changed_files, deleted_files):
         """Uploads the currently changed files for precommit analysis."""
         current_branch = get_current_branch(self.repository_path)
         self.teamscale_client.branch = current_branch
         parent_commit_timestamp = get_current_timestamp(self.repository_path)
 
-        changed_files = get_changed_files_and_content(self.repository_path)
-        deleted_files = get_deleted_files(self.repository_path)
-
-        if not changed_files and not deleted_files:
-            if include_existing_findings or include_all_findings:
-                return changed_files, deleted_files
-            else:
-                print("No changed files found. Forgot to `git add` new files?")
-                exit(0)
-
         print("Uploading changes on branch '%s' in '%s'..." % (current_branch, self.repository_path))
         precommit_data = PreCommitUploadData(uniformPathToContentMap=changed_files, deletedUniformPaths=deleted_files)
         self.teamscale_client.upload_files_for_precommit_analysis(
             datetime.datetime.fromtimestamp(int(parent_commit_timestamp)), precommit_data)
-        return changed_files, deleted_files
 
     def wait_and_get_precommit_result(self):
         """Gets the current precommit results. Waits synchronously until server is ready. """
@@ -76,20 +64,20 @@ class PrecommitClient:
         red_added_findings = list(filter(lambda finding: finding.assessment == "RED", added_findings))
         return len(red_added_findings) > 0
 
-    def print_other_findings_as_error_string(self, include_existing_findings=True, include_all_findings=True):
+    def print_other_findings_as_error_string(self, include_all_findings=True):
         """Print existing findings for the current file or the whole repo in a way, most text editors understand. """
         uniform_path = os.path.relpath(self.analyzed_file, self.repository_path)
         if include_all_findings:
             uniform_path = ''
 
-        if include_existing_findings or include_all_findings:
-            existing_findings = self.teamscale_client.get_findings(
-                uniform_path=uniform_path,
-                timestamp=datetime.datetime.fromtimestamp(int(get_current_timestamp(self.repository_path))))
-            print('')
-            print('Existing findings:')
-            for formatted_finding in self._format_findings(existing_findings):
-                print(formatted_finding)
+        existing_findings = self.teamscale_client.get_findings(
+            uniform_path=uniform_path,
+            timestamp=datetime.datetime.fromtimestamp(int(get_current_timestamp(self.repository_path))))
+
+        print('')
+        print('Existing findings:')
+        for formatted_finding in self._format_findings(existing_findings):
+            print(formatted_finding)
 
     def _format_findings(self, findings):
         """Formats the given findings as error or warning strings."""
@@ -155,11 +143,16 @@ def run():
     config_file = os.path.join(repo_path, _PRECOMMIT_CONFIG_FILENAME)
     if not os.path.exists(config_file) or not os.path.isfile(config_file):
         raise RuntimeError('Config file could not be found: %s' % config_file)
+
     precommit_client = configure_precommit_client(config_file=config_file, repo_path=repo_path, parsed_args=parsed_args)
 
-    changed_files, deleted_files = precommit_client.upload_precommit_data(
-        include_existing_findings=parsed_args.fetch_existing_findings,
-        include_all_findings=parsed_args.fetch_all_findings)
+    changed_files = get_changed_files_and_content(precommit_client.repository_path)
+    deleted_files = get_deleted_files(precommit_client.repository_path)
+    if changed_files or deleted_files:
+        precommit_client.upload_precommit_data(changed_files, deleted_files)
+    elif not parsed_args.fetch_all_findings and not parsed_args.fetch_existing_findings:
+        print("No changed files found. Forgot to `git add` new files?")
+        exit(0)
 
     # We need to wait for the analysis to pick up the new code otherwise we get old findings.
     # This might not be needed in future releases of Teamscale.
@@ -173,10 +166,7 @@ def run():
             include_findings_in_changed_code=not parsed_args.exclude_findings_in_changed_code)
 
     if parsed_args.fetch_existing_findings or parsed_args.fetch_all_findings:
-        precommit_client.print_other_findings_as_error_string(
-            include_existing_findings=parsed_args.fetch_existing_findings,
-            include_all_findings=parsed_args.fetch_all_findings
-        )
+        precommit_client.print_other_findings_as_error_string(include_all_findings=parsed_args.fetch_all_findings)
 
     if parsed_args.fail_on_red_findings and red_findings_found:
         exit(1)
