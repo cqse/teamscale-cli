@@ -146,23 +146,23 @@ def run():
 
     precommit_client = configure_precommit_client(config_file=config_file, repo_path=repo_path, parsed_args=parsed_args)
 
-    changed_files = get_changed_files_and_content(precommit_client.repository_path)
-    deleted_files = get_deleted_files(precommit_client.repository_path)
+    changed_files = get_changed_files_and_content(repo_path)
+    deleted_files = get_deleted_files(repo_path)
+
+    red_findings_found = False
     if changed_files or deleted_files:
         precommit_client.upload_precommit_data(changed_files, deleted_files)
         # We need to wait for the analysis to pick up the new code otherwise we get old findings.
         # This might not be needed in future releases of Teamscale.
         time.sleep(2)
+
+        print('Waiting for precommit analysis results...')
+        print('')
+        red_findings_found = precommit_client.print_precommit_results_as_error_string(
+            include_findings_in_changed_code=not parsed_args.exclude_findings_in_changed_code)
     elif not parsed_args.fetch_all_findings and not parsed_args.fetch_existing_findings:
         print("No changed files found. Forgot to `git add` new files?")
         exit(0)
-
-    print('Waiting for precommit analysis results...')
-    print('')
-    red_findings_found = False
-    if changed_files or deleted_files:
-        red_findings_found = precommit_client.print_precommit_results_as_error_string(
-            include_findings_in_changed_code=not parsed_args.exclude_findings_in_changed_code)
 
     if parsed_args.fetch_existing_findings or parsed_args.fetch_all_findings:
         precommit_client.print_other_findings_as_error_string(include_all_findings=parsed_args.fetch_all_findings)
