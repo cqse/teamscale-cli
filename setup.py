@@ -16,7 +16,6 @@ setup(
     ],
     install_requires=[
           'teamscale-client',
-          'configparser',
           'pygit2'
     ],
 
