@@ -11,10 +11,10 @@ from teamscale_precommit_client.git_utils import get_current_branch, get_current
 from teamscale_precommit_client.git_utils import get_changed_files_and_content, get_deleted_files
 from teamscale_precommit_client.data import PreCommitUploadData
 from teamscale_client import TeamscaleClient
-from teamscale_precommit_client.teamscale_config import TeamscaleConfig
+from teamscale_precommit_client.client_configuration_utils import get_teamscale_client_configuration
 from teamscale_precommit_client.git_utils import get_repo_root_from_file_in_repo
 
-_PRECOMMIT_CONFIG_FILENAME = '.teamscale-precommit.config'
+PRECOMMIT_CONFIG_FILENAME = '.teamscale-precommit.config'
 
 
 class PrecommitClient:
@@ -127,11 +127,11 @@ def _bool_or_string(string):
     return string
 
 
-def configure_precommit_client(config_file, repo_path, parsed_args):
+def _configure_precommit_client(config_file, repo_path, parsed_args):
     """Reads the precommit analysis configuration and creates a precommit client with the corresponding config."""
-    return PrecommitClient(teamscale_config=TeamscaleConfig(config_file), repository_path=repo_path,
+    config = get_teamscale_client_configuration(config_file)
+    return PrecommitClient(config, repository_path=repo_path,
                            analyzed_file=parsed_args.path[0], verify=parsed_args.verify)
-
 
 def run():
     """Performs precommit analysis."""
@@ -140,11 +140,8 @@ def run():
     if not repo_path or not os.path.exists(repo_path) or not os.path.isdir(repo_path):
         raise RuntimeError('Invalid path to file in repository: %s' % repo_path)
 
-    config_file = os.path.join(repo_path, _PRECOMMIT_CONFIG_FILENAME)
-    if not os.path.exists(config_file) or not os.path.isfile(config_file):
-        raise RuntimeError('Config file could not be found: %s' % config_file)
-
-    precommit_client = configure_precommit_client(config_file=config_file, repo_path=repo_path, parsed_args=parsed_args)
+    config_file = os.path.join(repo_path, PRECOMMIT_CONFIG_FILENAME)
+    precommit_client = _configure_precommit_client(config_file=config_file, repo_path=repo_path, parsed_args=parsed_args)
 
     changed_files = get_changed_files_and_content(repo_path)
     deleted_files = get_deleted_files(repo_path)
