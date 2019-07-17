@@ -1,11 +1,13 @@
 # Teamscale Precommit Command Line Client
 
-The Teamscale precommit command line interface allows you to integrate precommit analysis in editors or IDEs such as VS Code, Emacs or Sublime, by providing findings in a standard error format that can be interpreted like compile time errors.
+The [Teamscale](https://teamscale.com) precommit command line interface allows you to integrate precommit analysis in editors or IDEs such as VS Code, Emacs or Sublime, by providing findings in a standard error format that can be interpreted like compile time errors.
 
 
 ## Installation
 
-1. Install ```libgit2```: https://libgit2.org (not necessary on Windows as it's already package with the pygit dependency)
+1. Install ```libgit2``` (https://libgit2.org) on all platforms except Windows
+    - On macOS use `brew install libgit2`.
+    - Not necessary on Windows as ```libgit2``` is already packaged with the ```pygit``` dependency.
 
 2. Install this client via pip:
  ```bash
