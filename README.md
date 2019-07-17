@@ -102,6 +102,10 @@ Be cautious using these flags as there might be many findings in your code base.
                         When this option is set, the precommit client will exit
                         with a non-zero return value whenever RED findings were
                         among the precommit findings. (default: False)
+  --omit-links-to-findings
+                        By default, each finding includes a link to the
+                        corresponding finding in Teamscale. Setting this
+                        option omits these links. (default: False)
   --verify
                         Path to different certificate file.  See requests' verify
                         parameter in http://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification
