@@ -20,13 +20,14 @@ PRECOMMIT_CONFIG_FILENAME = '.teamscale-precommit.config'
 class PrecommitClient:
     """Client for precommit analysis"""
 
-    def __init__(self, teamscale_config, repository_path, analyzed_file=None, verify=True):
+    def __init__(self, teamscale_config, repository_path, analyzed_file=None, verify=True,
+                 omit_links_to_findings=False):
         """Constructor"""
-        self.repository_path = repository_path
         self.teamscale_client = TeamscaleClient(teamscale_config.url, teamscale_config.username,
-                                                teamscale_config.access_token, teamscale_config.project_id,
-                                                verify)
+                                                teamscale_config.access_token, teamscale_config.project_id, verify)
+        self.repository_path = repository_path
         self.analyzed_file = analyzed_file
+        self.omit_links_to_findings=omit_links_to_findings
 
     def upload_precommit_data(self, changed_files, deleted_files):
         """Uploads the currently changed files for precommit analysis."""
@@ -84,10 +85,17 @@ class PrecommitClient:
         if len(findings) == 0:
             return ['> No findings.']
         sorted_findings = sorted(findings)
-        return [os.path.join(self.repository_path, finding.uniformPath) + ':' + str(finding.startLine) + ':0: ' +
-                self._severity_string(finding=finding) + ': ' + finding.message for finding in sorted_findings]
+        if self.omit_links_to_findings:
+            return ['%s:%i:1:%s: %s' % (os.path.join(self.repository_path, finding.uniformPath), finding.startLine,
+                    self._severity_string(finding=finding), finding.message) for finding in sorted_findings]
+        else:
+            return ['%s:%i:1:%s: %s (%s)' % (os.path.join(self.repository_path, finding.uniformPath), finding.startLine,
+                    self._severity_string(finding=finding), finding.message,
+                                             self.teamscale_client.get_finding_url(finding))
+                    for finding in sorted_findings]
 
-    def _severity_string(self, finding):
+    @staticmethod
+    def _severity_string(finding):
         """Formats the given finding's assessment as severity."""
         return 'error' if finding.assessment == 'RED' else 'warning'
 
@@ -112,10 +120,14 @@ def _parse_args():
                         const=True, default=False,
                         help='When this option is set, the precommit client will exit with a non-zero return value '
                              'whenever RED findings were among the precommit findings. (default: False)')
+    parser.add_argument('--omit-links-to-findings', dest='omit_links_to_findings', action='store_const',
+                        const=True, default=False,
+                        help='By default, each finding includes a link to the corresponding finding in Teamscale. '
+                             'Setting this option omits these links. (default: False)')
     parser.add_argument('--verify', default=True, type=_bool_or_string,
-                        help="Path to different certificate file. See requests' verify parameter in"
-                             "http://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification"
-                             "Other possible values: True, False (default: True)")
+                        help='Path to different certificate file. See requests\' verify parameter in '
+                             'http://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification.\n'
+                             'Other possible values: True, False (default: True)')
     return parser.parse_args()
 
 
@@ -130,8 +142,9 @@ def _bool_or_string(string):
 def _configure_precommit_client(config_file, repo_path, parsed_args):
     """Reads the precommit analysis configuration and creates a precommit client with the corresponding config."""
     config = get_teamscale_client_configuration(config_file)
-    return PrecommitClient(config, repository_path=repo_path,
-                           analyzed_file=parsed_args.path[0], verify=parsed_args.verify)
+    return PrecommitClient(config, repository_path=repo_path, analyzed_file=parsed_args.path[0],
+                           verify=parsed_args.verify, omit_links_to_findings=parsed_args.omit_links_to_findings)
+
 
 def run():
     """Performs precommit analysis."""
