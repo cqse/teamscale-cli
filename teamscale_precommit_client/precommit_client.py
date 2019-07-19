@@ -86,10 +86,10 @@ class PrecommitClient:
             return ['> No findings.']
         sorted_findings = sorted(findings)
         if self.omit_links_to_findings:
-            return ['%s:%i:1:%s: %s' % (os.path.join(self.repository_path, finding.uniformPath), finding.startLine,
+            return ['%s:%i:1: %s: %s' % (os.path.join(self.repository_path, finding.uniformPath), finding.startLine,
                     self._severity_string(finding=finding), finding.message) for finding in sorted_findings]
         else:
-            return ['%s:%i:1:%s: %s (%s)' % (os.path.join(self.repository_path, finding.uniformPath), finding.startLine,
+            return ['%s:%i:1: %s: %s (%s)' % (os.path.join(self.repository_path, finding.uniformPath), finding.startLine,
                     self._severity_string(finding=finding), finding.message,
                                              self.teamscale_client.get_finding_url(finding))
                     for finding in sorted_findings]
