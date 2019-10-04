@@ -14,11 +14,15 @@ setup(
     classifiers=[
         "Topic :: Utilities",
     ],
+    entry_points={
+        'console_scripts': [
+            'teamscale-cli=teamscale_precommit_client.precommit_client:run'
+        ]
+    },
     install_requires=[
           'teamscale-client',
           'pygit2'
     ],
-
     tests_require=[
           'pytest',
           'responses'

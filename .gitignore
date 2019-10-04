@@ -1,2 +1,5 @@
 /venv/
 /dist/
+/.eggs/
+/teamscale_cli.egg-info/
+/build/
