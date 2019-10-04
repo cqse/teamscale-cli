@@ -8,7 +8,7 @@ import os
 import argparse
 
 from teamscale_precommit_client.git_utils import get_current_branch, get_current_timestamp
-from teamscale_precommit_client.git_utils import get_changed_files_and_content, get_deleted_files
+from teamscale_precommit_client.git_utils import get_changed_files, get_changed_files_and_content, get_deleted_files
 from teamscale_precommit_client.data import PreCommitUploadData
 from teamscale_client import TeamscaleClient
 from teamscale_precommit_client.client_configuration_utils import get_teamscale_client_configuration
@@ -80,8 +80,26 @@ class PrecommitClient:
         for formatted_finding in self._format_findings(existing_findings):
             print(formatted_finding)
 
+    def print_existing_findings_in_changes_as_error_string(self):
+        """Print existing findings for the changed files. """
+
+        self.teamscale_client.branch = '__precommit__%s' % self.teamscale_client.username
+
+        existing_findings = []
+        for changed_file in get_changed_files(self.repository_path):
+            uniform_path = os.path.relpath(changed_file, self.repository_path)
+            existing_findings.extend(self.teamscale_client.get_findings(
+                uniform_path=uniform_path,
+                timestamp=datetime.datetime.now()))
+
+        print('')
+        print('Existing findings:')
+        for formatted_finding in self._format_findings(existing_findings):
+            print(formatted_finding)
+
     def _format_findings(self, findings):
         """Formats the given findings as error or warning strings."""
+        self.teamscale_client.branch = '__precommit__%s' % self.teamscale_client.username
         if len(findings) == 0:
             return ['> No findings.']
         sorted_findings = sorted(findings)
@@ -90,8 +108,9 @@ class PrecommitClient:
                     self._severity_string(finding=finding), finding.message) for finding in sorted_findings]
         else:
             return ['%s:%i:1: %s: %s (%s)' % (os.path.join(self.repository_path, finding.uniformPath), finding.startLine,
-                    self._severity_string(finding=finding), finding.message,
-                                             self.teamscale_client.get_finding_url(finding))
+                    self._severity_string(finding=finding), finding.message, '%s&t=%s' %
+                                              (self.teamscale_client.get_finding_url(finding),
+                                               self.teamscale_client._get_timestamp_parameter(timestamp=None)))
                     for finding in sorted_findings]
 
     @staticmethod
@@ -111,6 +130,10 @@ def _parse_args():
     parser.add_argument('--fetch-existing-findings', dest='fetch_existing_findings', action='store_const',
                         const=True, default=False,
                         help='When this option is set, existing findings in the specified file are fetched in addition '
+                             'to precommit findings. (default: False)')
+    parser.add_argument('--fetch-existing-findings-in-changes', dest='fetch_existing_findings_in_changes',
+                        action='store_const', const=True, default=False,
+                        help='When this option is set, existing findings in all changed files are fetched in addition '
                              'to precommit findings. (default: False)')
     parser.add_argument('--fetch-all-findings', dest='fetch_all_findings', action='store_const',
                         const=True, default=False,
@@ -174,7 +197,9 @@ def run():
         print("No changed files found. Forgot to `git add` new files?")
         exit(0)
 
-    if parsed_args.fetch_existing_findings or parsed_args.fetch_all_findings:
+    if parsed_args.fetch_existing_findings_in_changes:
+        precommit_client.print_existing_findings_in_changes_as_error_string()
+    elif parsed_args.fetch_existing_findings or parsed_args.fetch_all_findings:
         precommit_client.print_other_findings_as_error_string(include_all_findings=parsed_args.fetch_all_findings)
 
     if parsed_args.fail_on_red_findings and red_findings_found:
