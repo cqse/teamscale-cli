@@ -19,7 +19,7 @@ The [Teamscale](https://teamscale.com) precommit command line interface allows y
 4. Use this script as compile or build command in your editor or IDE. See below for more information and a couple of examples on how to accomplish this. Provide a file or folder within your repository as input. The general invocation looks like this:
 
  ```bash
- $ python -c "from teamscale_precommit_client.precommit_client import run;run()" ANY_FILE_OR_FOLDER_IN_YOUR_REPO
+ $ teamscale-cli ANY_FILE_OR_FOLDER_IN_YOUR_REPO
  ```
 
 5. The behavior of the client can be tweaked with several arguments. Run the client with the ```-h``` argument to get the usage.
@@ -36,14 +36,14 @@ This allows you to use the highlighting capabilities of your editors to mark the
 
 ### Sublime
 
-Add a new *Build System* under `Tools > Build System`. Locate `config/teamscale-precommit.sublime-build` in this repo. Copy and paste the snippet and modify to your needs (e.g. `python` vs. `python3`).
+Add a new *Build System* under `Tools > Build System`. Locate `config/teamscale-precommit.sublime-build` in this repo. Copy and paste the snippet and modify the arguments to fit your needs.
 
 ### Xcode
 
 Add a new *Build Phase* (`New Run Script Phase`) to your project. Enter the following command as shell script in that phase (see screenshot):
 
 ```bash
-python -c "from teamscale_precommit_client.precommit_client import run;run()" ${SRCROOT} --fail-on-red-findings
+teamscale-cli ${SRCROOT} --fail-on-red-findings
 ```
 
 ![Configuring the Build Phase in Xcode](config/xcode_1.png)
