@@ -48,9 +48,9 @@ class PrecommitClient:
         """Returns the precommit branch of the current user."""
         return '__precommit__%s' % self.teamscale_client.username
 
-    def _print_findings(self, message, findings):
+    def _print_findings(self, message, findings, branch):
         print(message)
-        for formatted_finding in self._format_findings(findings):
+        for formatted_finding in self._format_findings(findings, branch):
             print(formatted_finding)
 
     def print_precommit_results_as_error_string(self, include_findings_in_changed_code=True):
@@ -60,27 +60,29 @@ class PrecommitClient:
             `True`, if RED findings were among the new findings. `False`, otherwise.
         """
         added_findings, removed_findings, findings_in_changed_code = self._wait_and_get_precommit_result()
+        branch = self._get_precommit_branch()
 
-        self._print_findings("New findings:", added_findings)
+        self._print_findings("New findings:", added_findings, branch)
         if include_findings_in_changed_code:
             print('')
-            self._print_findings('Findings in changed code:', findings_in_changed_code)
+            self._print_findings('Findings in changed code:', findings_in_changed_code, branch)
 
         added_red_findings = list(filter(lambda finding: finding.assessment == "RED", added_findings))
         return len(added_red_findings) > 0
 
     def print_other_findings_as_error_string(self, include_all_findings=True):
         """Print existing findings for the current file or the whole repo in a way, most text editors understand. """
+        self.teamscale_client.branch = get_current_branch(self.repository_path)
+
         uniform_path = os.path.relpath(self.analyzed_file, self.repository_path)
+
         if include_all_findings:
             uniform_path = ''
 
-        existing_findings = self.teamscale_client.get_findings(
-            uniform_path=uniform_path,
-            timestamp=datetime.datetime.fromtimestamp(int(get_current_timestamp(self.repository_path))))
+        existing_findings = self.teamscale_client.get_findings(uniform_path=uniform_path, timestamp=None)
 
         print('')
-        self._print_findings('Existing findings:', existing_findings)
+        self._print_findings('Existing findings:', existing_findings, self.teamscale_client.branch)
 
     def print_existing_findings_in_changes_as_error_string(self):
         """Print existing findings for the changed files. """
@@ -90,19 +92,20 @@ class PrecommitClient:
         existing_findings = []
         for changed_file in get_changed_files(self.repository_path):
             uniform_path = os.path.relpath(changed_file, self.repository_path)
-            existing_findings.extend(self.teamscale_client.get_findings(
-                uniform_path=uniform_path,
-                timestamp=datetime.datetime.now()))
+            existing_findings.extend(self.teamscale_client.get_findings(uniform_path=uniform_path, timestamp=None))
 
         print('')
-        self._print_findings('Existing findings:', existing_findings)
+        self._print_findings('Existing findings:', existing_findings, self.teamscale_client.branch)
 
-    def _format_findings(self, findings):
+    def _format_findings(self, findings, branch):
         """Formats the given findings as error or warning strings."""
-        self.teamscale_client.branch = self._get_precommit_branch()
+        self.teamscale_client.branch = branch
+
         if len(findings) == 0:
             return ['> No findings.']
+
         sorted_findings = sorted(findings)
+
         if self.omit_links_to_findings:
             return ['%s:%i:1: %s: %s' % (os.path.join(self.repository_path, finding.uniformPath), finding.startLine,
                                          self._get_finding_severity_message(finding=finding), finding.message) for
