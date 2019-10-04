@@ -27,7 +27,7 @@ class PrecommitClient:
                                                 teamscale_config.access_token, teamscale_config.project_id, verify)
         self.repository_path = repository_path
         self.analyzed_file = analyzed_file
-        self.omit_links_to_findings=omit_links_to_findings
+        self.omit_links_to_findings = omit_links_to_findings
 
     def upload_precommit_data(self, changed_files, deleted_files):
         """Uploads the currently changed files for precommit analysis."""
@@ -40,9 +40,18 @@ class PrecommitClient:
         self.teamscale_client.upload_files_for_precommit_analysis(
             datetime.datetime.fromtimestamp(int(parent_commit_timestamp)), precommit_data)
 
-    def wait_and_get_precommit_result(self):
+    def _wait_and_get_precommit_result(self):
         """Gets the current precommit results. Waits synchronously until server is ready. """
         return self.teamscale_client.get_precommit_analysis_results()
+
+    def _get_precommit_branch(self):
+        """Returns the precommit branch of the current user."""
+        return '__precommit__%s' % self.teamscale_client.username
+
+    def _print_findings(self, message, findings):
+        print(message)
+        for formatted_finding in self._format_findings(findings):
+            print(formatted_finding)
 
     def print_precommit_results_as_error_string(self, include_findings_in_changed_code=True):
         """Print the current precommit results formatting them in a way, most text editors understand.
@@ -50,20 +59,15 @@ class PrecommitClient:
         Returns:
             `True`, if RED findings were among the new findings. `False`, otherwise.
         """
-        added_findings, removed_findings, findings_in_changed_code = self.wait_and_get_precommit_result()
+        added_findings, removed_findings, findings_in_changed_code = self._wait_and_get_precommit_result()
 
-        print('New findings:')
-        for formatted_finding in self._format_findings(added_findings):
-            print(formatted_finding)
-
+        self._print_findings("New findings:", added_findings)
         if include_findings_in_changed_code:
             print('')
-            print('Findings in changed code:')
-            for formatted_finding in self._format_findings(findings_in_changed_code):
-                print(formatted_finding)
+            self._print_findings('Findings in changed code:', findings_in_changed_code)
 
-        red_added_findings = list(filter(lambda finding: finding.assessment == "RED", added_findings))
-        return len(red_added_findings) > 0
+        added_red_findings = list(filter(lambda finding: finding.assessment == "RED", added_findings))
+        return len(added_red_findings) > 0
 
     def print_other_findings_as_error_string(self, include_all_findings=True):
         """Print existing findings for the current file or the whole repo in a way, most text editors understand. """
@@ -76,14 +80,12 @@ class PrecommitClient:
             timestamp=datetime.datetime.fromtimestamp(int(get_current_timestamp(self.repository_path))))
 
         print('')
-        print('Existing findings:')
-        for formatted_finding in self._format_findings(existing_findings):
-            print(formatted_finding)
+        self._print_findings('Existing findings:', existing_findings)
 
     def print_existing_findings_in_changes_as_error_string(self):
         """Print existing findings for the changed files. """
 
-        self.teamscale_client.branch = '__precommit__%s' % self.teamscale_client.username
+        self.teamscale_client.branch = self._get_precommit_branch()
 
         existing_findings = []
         for changed_file in get_changed_files(self.repository_path):
@@ -93,28 +95,29 @@ class PrecommitClient:
                 timestamp=datetime.datetime.now()))
 
         print('')
-        print('Existing findings:')
-        for formatted_finding in self._format_findings(existing_findings):
-            print(formatted_finding)
+        self._print_findings('Existing findings:', existing_findings)
 
     def _format_findings(self, findings):
         """Formats the given findings as error or warning strings."""
-        self.teamscale_client.branch = '__precommit__%s' % self.teamscale_client.username
+        self.teamscale_client.branch = self._get_precommit_branch()
         if len(findings) == 0:
             return ['> No findings.']
         sorted_findings = sorted(findings)
         if self.omit_links_to_findings:
             return ['%s:%i:1: %s: %s' % (os.path.join(self.repository_path, finding.uniformPath), finding.startLine,
-                    self._severity_string(finding=finding), finding.message) for finding in sorted_findings]
+                                         self._get_finding_severity_message(finding=finding), finding.message) for
+                    finding in sorted_findings]
         else:
-            return ['%s:%i:1: %s: %s (%s)' % (os.path.join(self.repository_path, finding.uniformPath), finding.startLine,
-                    self._severity_string(finding=finding), finding.message, '%s&t=%s' %
-                                              (self.teamscale_client.get_finding_url(finding),
-                                               self.teamscale_client._get_timestamp_parameter(timestamp=None)))
-                    for finding in sorted_findings]
+            return [
+                '%s:%i:1: %s: %s (%s)' % (os.path.join(self.repository_path, finding.uniformPath), finding.startLine,
+                                          self._get_finding_severity_message(finding=finding), finding.message,
+                                          '%s&t=%s' %
+                                          (self.teamscale_client.get_finding_url(finding),
+                                           self.teamscale_client._get_timestamp_parameter(timestamp=None)))
+                for finding in sorted_findings]
 
     @staticmethod
-    def _severity_string(finding):
+    def _get_finding_severity_message(finding):
         """Formats the given finding's assessment as severity."""
         return 'error' if finding.assessment == 'RED' else 'warning'
 
@@ -177,7 +180,8 @@ def run():
         raise RuntimeError('Invalid path to file in repository: %s' % repo_path)
 
     config_file = os.path.join(repo_path, PRECOMMIT_CONFIG_FILENAME)
-    precommit_client = _configure_precommit_client(config_file=config_file, repo_path=repo_path, parsed_args=parsed_args)
+    precommit_client = _configure_precommit_client(config_file=config_file, repo_path=repo_path,
+                                                   parsed_args=parsed_args)
 
     changed_files = get_changed_files_and_content(repo_path)
     deleted_files = get_deleted_files(repo_path)
