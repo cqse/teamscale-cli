@@ -14,35 +14,103 @@ from teamscale_client import TeamscaleClient
 from teamscale_precommit_client.client_configuration_utils import get_teamscale_client_configuration
 from teamscale_precommit_client.git_utils import get_repo_root_from_file_in_repo
 
+# Filename of the precommit configuration. The client expects this config file at the root of the repository.
 PRECOMMIT_CONFIG_FILENAME = '.teamscale-precommit.config'
 
 
 class PrecommitClient:
     """Client for precommit analysis"""
+    # Number of seconds the client waits until fetching precommit results from the server.
+    PRECOMMIT_WAITING_TIME_IN_SECONDS = 2
 
+    # TODO: Extract defaults from here and parsed args
     def __init__(self, teamscale_config, repository_path, analyzed_file=None, verify=True,
-                 omit_links_to_findings=False):
+                 omit_links_to_findings=False, exclude_findings_in_changed_code=False, fetch_existing_findings=False,
+                 fetch_all_findings=False, fetch_existing_findings_in_changes=False, fail_on_red_findings=False):
         """Constructor"""
         self.teamscale_client = TeamscaleClient(teamscale_config.url, teamscale_config.username,
                                                 teamscale_config.access_token, teamscale_config.project_id, verify)
         self.repository_path = repository_path
         self.analyzed_file = analyzed_file
         self.omit_links_to_findings = omit_links_to_findings
+        self.exclude_findings_in_changed_code = exclude_findings_in_changed_code
+        self.fetch_existing_findings = fetch_existing_findings
+        self.fetch_all_findings = fetch_all_findings
+        self.fetch_existing_findings_in_changes = fetch_existing_findings_in_changes
+        self.fail_on_red_findings = fail_on_red_findings
+        self.changed_files = {}
+        self.deleted_files = []
+        self.added_findings = []
+        self.removed_findings = []
+        self.existing_findings = []
+        self.findings_in_changed_code = []
+        self.current_branch = ''
+        self.parent_commit_timestamp = 0
 
-    def upload_precommit_data(self, changed_files, deleted_files):
+    def run(self):
+        """Performs the precommit analysis. Depending on the modifications made and the flags provided to the client,
+        this triggers precommit analysis or just queries existing findings."""
+        self.calculate_modifications()
+        self._retrieve_current_branch()
+        self._retrieve_parent_commit_timestamp()
+
+        if self.changed_files or self.deleted_files:
+            self.do_precommit_analysis()
+            self.print_precommit_results_as_error_string()
+        elif not self.fetch_all_findings and not self.fetch_existing_findings:
+            print("No changed files found. Forgot to `git add` new files?")
+            exit(0)
+
+        # TODO: If there are changes, fetch_existing_findings should not be executed, but fetch_...in_changes.
+        # Otherwise, the findings may be off.
+        if self.fetch_existing_findings_in_changes:
+            self.print_existing_findings_in_changes_as_error_string()
+        elif self.fetch_existing_findings or self.fetch_all_findings:
+            self.print_other_findings_as_error_string()
+
+        if self.fail_on_red_findings and self.did_precommit_analysis_yield_red_findings():
+            exit(1)
+
+    def calculate_modifications(self):
+        """Calculates the changed and deleted files in the repository."""
+        if not self.repository_path or not os.path.exists(self.repository_path) or not os.path.isdir(
+                self.repository_path):
+            raise RuntimeError('Invalid path to file in repository: %s' % self.repository_path)
+        self.changed_files = get_changed_files_and_content(self.repository_path)
+        self.deleted_files = get_deleted_files(self.repository_path)
+
+    def _retrieve_current_branch(self):
+        """Retrieves the current branch from the repository."""
+        self.current_branch = get_current_branch(self.repository_path)
+
+    def _retrieve_parent_commit_timestamp(self):
+        """Retrieves the commit timestamp from the repository."""
+        self.parent_commit_timestamp = int(get_current_timestamp(self.repository_path))
+
+    def do_precommit_analysis(self):
+        """Uploads changed and deleted files to Teamscale, waits for the results, and interprets them."""
+        self.upload_precommit_data()
+        # We need to wait for the analysis to pick up the new code otherwise we get old findings.
+        # This might not be needed in future releases of Teamscale.
+        time.sleep(PrecommitClient.PRECOMMIT_WAITING_TIME_IN_SECONDS)
+        print('Waiting for precommit analysis results...')
+        print('')
+        self._wait_and_get_precommit_result()
+
+    def upload_precommit_data(self):
         """Uploads the currently changed files for precommit analysis."""
-        current_branch = get_current_branch(self.repository_path)
-        self.teamscale_client.branch = current_branch
-        parent_commit_timestamp = get_current_timestamp(self.repository_path)
+        self.teamscale_client.branch = self.current_branch
 
-        print("Uploading changes on branch '%s' in '%s'..." % (current_branch, self.repository_path))
-        precommit_data = PreCommitUploadData(uniformPathToContentMap=changed_files, deletedUniformPaths=deleted_files)
+        print("Uploading changes on branch '%s' in '%s'..." % (self.current_branch, self.repository_path))
+        precommit_data = PreCommitUploadData(uniformPathToContentMap=self.changed_files,
+                                             deletedUniformPaths=self.deleted_files)
         self.teamscale_client.upload_files_for_precommit_analysis(
-            datetime.datetime.fromtimestamp(int(parent_commit_timestamp)), precommit_data)
+            datetime.datetime.fromtimestamp(self.parent_commit_timestamp), precommit_data)
 
     def _wait_and_get_precommit_result(self):
         """Gets the current precommit results. Waits synchronously until server is ready. """
-        return self.teamscale_client.get_precommit_analysis_results()
+        self.added_findings, self.removed_findings, self.findings_in_changed_code = \
+            self.teamscale_client.get_precommit_analysis_results()
 
     def _get_precommit_branch(self):
         """Returns the precommit branch of the current user."""
@@ -53,49 +121,47 @@ class PrecommitClient:
         for formatted_finding in self._format_findings(findings, branch):
             print(formatted_finding)
 
-    def print_precommit_results_as_error_string(self, include_findings_in_changed_code=True):
-        """Print the current precommit results formatting them in a way, most text editors understand.
-
-        Returns:
-            `True`, if RED findings were among the new findings. `False`, otherwise.
-        """
-        added_findings, removed_findings, findings_in_changed_code = self._wait_and_get_precommit_result()
+    def print_precommit_results_as_error_string(self):
+        """Print the current precommit results formatting them in a way, most text editors understand."""
         branch = self._get_precommit_branch()
-
-        self._print_findings("New findings:", added_findings, branch)
-        if include_findings_in_changed_code:
+        self._print_findings("New findings:", self.added_findings, branch)
+        if not self.exclude_findings_in_changed_code:
             print('')
-            self._print_findings('Findings in changed code:', findings_in_changed_code, branch)
+            self._print_findings('Findings in changed code:', self.findings_in_changed_code, branch)
 
-        added_red_findings = list(filter(lambda finding: finding.assessment == "RED", added_findings))
+    def did_precommit_analysis_yield_red_findings(self):
+        """Returns whether the analysis resulted in any RED findings."""
+        added_red_findings = list(filter(lambda finding: finding.assessment == "RED", self.added_findings))
         return len(added_red_findings) > 0
 
-    def print_other_findings_as_error_string(self, include_all_findings=True):
+    def print_other_findings_as_error_string(self):
         """Print existing findings for the current file or the whole repo in a way, most text editors understand. """
-        self.teamscale_client.branch = get_current_branch(self.repository_path)
-
-        uniform_path = os.path.relpath(self.analyzed_file, self.repository_path)
-
-        if include_all_findings:
-            uniform_path = ''
-
-        existing_findings = self.teamscale_client.get_findings(uniform_path=uniform_path, timestamp=None)
+        self.get_existing_findings()
 
         print('')
-        self._print_findings('Existing findings:', existing_findings, self.teamscale_client.branch)
+        self._print_findings('Existing findings:', self.existing_findings, self.current_branch)
+
+    def get_existing_findings(self):
+        self.teamscale_client.branch = self.current_branch
+        uniform_path = os.path.relpath(self.analyzed_file, self.repository_path)
+        if self.fetch_all_findings:
+            uniform_path = ''
+        self.existing_findings = self.teamscale_client.get_findings(uniform_path=uniform_path, timestamp=None)
 
     def print_existing_findings_in_changes_as_error_string(self):
         """Print existing findings for the changed files. """
-
-        self.teamscale_client.branch = self._get_precommit_branch()
-
-        existing_findings = []
-        for changed_file in get_changed_files(self.repository_path):
-            uniform_path = os.path.relpath(changed_file, self.repository_path)
-            existing_findings.extend(self.teamscale_client.get_findings(uniform_path=uniform_path, timestamp=None))
+        self.get_findings_in_changes()
 
         print('')
-        self._print_findings('Existing findings:', existing_findings, self.teamscale_client.branch)
+        self._print_findings('Existing findings:', self.existing_findings, self._get_precommit_branch())
+
+    # TODO: Combine with `get_existing_findings`
+    def get_findings_in_changes(self):
+        self.teamscale_client.branch = self._get_precommit_branch()
+        self.existing_findings = []
+        for changed_file in get_changed_files(self.repository_path):
+            uniform_path = os.path.relpath(changed_file, self.repository_path)
+            self.existing_findings.extend(self.teamscale_client.get_findings(uniform_path=uniform_path, timestamp=None))
 
     def _format_findings(self, findings, branch):
         """Formats the given findings as error or warning strings."""
@@ -168,49 +234,26 @@ def _bool_or_string(string):
     return string
 
 
-def _configure_precommit_client(config_file, repo_path, parsed_args):
+def _configure_precommit_client(parsed_args):
     """Reads the precommit analysis configuration and creates a precommit client with the corresponding config."""
+    path_to_file_in_repo = parsed_args.path[0]
+    repo_path = get_repo_root_from_file_in_repo(os.path.normpath(path_to_file_in_repo))
+    config_file = os.path.join(repo_path, PRECOMMIT_CONFIG_FILENAME)
     config = get_teamscale_client_configuration(config_file)
-    return PrecommitClient(config, repository_path=repo_path, analyzed_file=parsed_args.path[0],
-                           verify=parsed_args.verify, omit_links_to_findings=parsed_args.omit_links_to_findings)
+    return PrecommitClient(config, repository_path=repo_path, analyzed_file=path_to_file_in_repo,
+                           verify=parsed_args.verify, omit_links_to_findings=parsed_args.omit_links_to_findings,
+                           exclude_findings_in_changed_code=parsed_args.exclude_findings_in_changed_code,
+                           fetch_existing_findings=parsed_args.fetch_existing_findings,
+                           fetch_all_findings=parsed_args.fetch_all_findings,
+                           fetch_existing_findings_in_changes=parsed_args.fetch_existing_findings_in_changes,
+                           fail_on_red_findings=parsed_args.fail_on_red_findings)
 
 
 def run():
     """Performs precommit analysis."""
     parsed_args = _parse_args()
-    repo_path = get_repo_root_from_file_in_repo(os.path.normpath(parsed_args.path[0]))
-    if not repo_path or not os.path.exists(repo_path) or not os.path.isdir(repo_path):
-        raise RuntimeError('Invalid path to file in repository: %s' % repo_path)
-
-    config_file = os.path.join(repo_path, PRECOMMIT_CONFIG_FILENAME)
-    precommit_client = _configure_precommit_client(config_file=config_file, repo_path=repo_path,
-                                                   parsed_args=parsed_args)
-
-    changed_files = get_changed_files_and_content(repo_path)
-    deleted_files = get_deleted_files(repo_path)
-
-    red_findings_found = False
-    if changed_files or deleted_files:
-        precommit_client.upload_precommit_data(changed_files, deleted_files)
-        # We need to wait for the analysis to pick up the new code otherwise we get old findings.
-        # This might not be needed in future releases of Teamscale.
-        time.sleep(2)
-
-        print('Waiting for precommit analysis results...')
-        print('')
-        red_findings_found = precommit_client.print_precommit_results_as_error_string(
-            include_findings_in_changed_code=not parsed_args.exclude_findings_in_changed_code)
-    elif not parsed_args.fetch_all_findings and not parsed_args.fetch_existing_findings:
-        print("No changed files found. Forgot to `git add` new files?")
-        exit(0)
-
-    if parsed_args.fetch_existing_findings_in_changes:
-        precommit_client.print_existing_findings_in_changes_as_error_string()
-    elif parsed_args.fetch_existing_findings or parsed_args.fetch_all_findings:
-        precommit_client.print_other_findings_as_error_string(include_all_findings=parsed_args.fetch_all_findings)
-
-    if parsed_args.fail_on_red_findings and red_findings_found:
-        exit(1)
+    precommit_client = _configure_precommit_client(parsed_args)
+    precommit_client.run()
 
 
 if __name__ == '__main__':

@@ -1,0 +1,23 @@
+sudo: false
+
+language: python
+
+python:
+  - "2.7"
+  - "3.4"
+  - "3.5"
+
+cache:
+  directories:
+      - $HOME/.cache/pip
+
+install:
+    - pip install travis-sphinx sphinx
+    - pip install -e . 
+
+script:
+    - python setup.py test
+    - if [[ $TRAVIS_PYTHON_VERSION == 2* ]]; then travis-sphinx build --source=docs; fi
+
+after_success:
+    - if [[ $TRAVIS_PYTHON_VERSION == 2* ]]; then travis-sphinx deploy; fi
