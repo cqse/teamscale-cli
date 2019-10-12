@@ -23,7 +23,6 @@ class PrecommitClient:
     # Number of seconds the client waits until fetching precommit results from the server.
     PRECOMMIT_WAITING_TIME_IN_SECONDS = 2
 
-    # TODO: Extract defaults from here and parsed args
     def __init__(self, teamscale_config, repository_path, analyzed_file=None, verify=True,
                  omit_links_to_findings=False, exclude_findings_in_changed_code=False, fetch_existing_findings=False,
                  fetch_all_findings=False, fetch_existing_findings_in_changes=False, fail_on_red_findings=False):
