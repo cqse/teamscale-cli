@@ -145,6 +145,10 @@ class PrecommitClient:
         if self.fetch_all_findings:
             uniform_path = ''
         self.existing_findings = self.teamscale_client.get_findings(uniform_path=uniform_path, timestamp=None)
+        self._remove_precommit_findings_from_existing_findings()
+
+    def _remove_precommit_findings_from_existing_findings(self):
+        """Ensures no precommit findings are among the existing findings."""
         self.existing_findings = [finding for finding in self.existing_findings if finding not in self.added_findings
                                   and finding not in self.removed_findings
                                   and finding not in self.findings_in_changed_code]
@@ -153,9 +157,9 @@ class PrecommitClient:
         """Gets the existing findings in the changed files."""
         self.teamscale_client.branch = self._get_precommit_branch()
         self.existing_findings = []
-        for changed_file in get_changed_files(self.repository_path):
-            uniform_path = os.path.relpath(changed_file, self.repository_path)
+        for uniform_path in self.changed_files:
             self.existing_findings.extend(self.teamscale_client.get_findings(uniform_path=uniform_path, timestamp=None))
+        self._remove_precommit_findings_from_existing_findings()
 
     def _format_findings(self, findings, branch):
         """Formats the given findings as error or warning strings."""

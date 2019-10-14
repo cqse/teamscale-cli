@@ -26,7 +26,7 @@ class PrecommitClientTest(TestCase):
     @responses.activate
     def test_two_added_precommit_findings(self):
         """Tests that changed files provoke the client to upload changes and interpret precommit results."""
-        self.precommit_client = self._get_precommit_client(self._get_two_changed_files(), self._get_no_deleted_files())
+        self.precommit_client = self._get_precommit_client(self._get_changed_file(), self._get_no_deleted_files())
 
         self.mock_precommit_findings_churn(added_findings=[1, 2])
         self.precommit_client.run()
@@ -38,7 +38,7 @@ class PrecommitClientTest(TestCase):
     @responses.activate
     def test_two_removed_precommit_findings(self):
         """Tests that removed findings are interpreted correctly."""
-        self.precommit_client = self._get_precommit_client(self._get_two_changed_files(), self._get_no_deleted_files())
+        self.precommit_client = self._get_precommit_client(self._get_changed_file(), self._get_no_deleted_files())
 
         self.mock_precommit_findings_churn(removed_findings=[1, 2])
         self.precommit_client.run()
@@ -46,6 +46,18 @@ class PrecommitClientTest(TestCase):
         self.assert_findings_ids(self.precommit_client.added_findings, [])
         self.assert_findings_ids(self.precommit_client.removed_findings, [1, 2])
         self.assert_findings_ids(self.precommit_client.findings_in_changed_code, [])
+
+    @responses.activate
+    def test_two_precommit_findings_in_changed_code(self):
+        """Tests that removed findings are interpreted correctly."""
+        self.precommit_client = self._get_precommit_client(self._get_changed_file(), self._get_no_deleted_files())
+
+        self.mock_precommit_findings_churn(findings_in_changed_code=[1, 2])
+        self.precommit_client.run()
+
+        self.assert_findings_ids(self.precommit_client.added_findings, [])
+        self.assert_findings_ids(self.precommit_client.removed_findings, [])
+        self.assert_findings_ids(self.precommit_client.findings_in_changed_code, [1, 2])
 
     @responses.activate
     def test_no_changes(self):
@@ -82,9 +94,27 @@ class PrecommitClientTest(TestCase):
         yields the added findings plus the existing findings (with potentially different locations) on the precommit
         branch.
         We check the latter by making the server mock return a different set than on the current branch."""
-        self.precommit_client = PrecommitClientTest._get_precommit_client(self._get_two_changed_files(),
+        self.precommit_client = PrecommitClientTest._get_precommit_client(self._get_changed_file(),
                                                                           self._get_no_deleted_files(),
                                                                           fetch_existing_findings=True)
+        self.mock_precommit_findings_churn(added_findings=[1, 2])
+        self.mock_existing_findings(self.precommit_client._get_precommit_branch(), existing_findings=[1, 2, 4, 5, 6, 7])
+        self.precommit_client.run()
+
+        self.assert_findings_ids(self.precommit_client.added_findings, [1, 2])
+        self.assert_findings_ids(self.precommit_client.removed_findings, [])
+        self.assert_findings_ids(self.precommit_client.findings_in_changed_code, [])
+        self.assert_findings_ids(self.precommit_client.existing_findings, [4, 5, 6, 7])
+
+    @responses.activate
+    def test_get_added_and_existing_findings_for_changes(self):
+        """Tests that calling the precommit client with changes and with the flag to retrieve existing findings
+        yields the added findings plus the existing findings (with potentially different locations) on the precommit
+        branch.
+        We check the latter by making the server mock return a different set than on the current branch."""
+        self.precommit_client = PrecommitClientTest._get_precommit_client(self._get_changed_file(),
+                                                                          self._get_no_deleted_files(),
+                                                                          fetch_existing_findings_in_changes=True)
         self.mock_precommit_findings_churn(added_findings=[1, 2])
         self.mock_existing_findings(self.precommit_client._get_precommit_branch(), existing_findings=[1, 2, 4, 5, 6, 7])
         self.precommit_client.run()
@@ -121,13 +151,15 @@ class PrecommitClientTest(TestCase):
         return re.compile(r'%s/p/%s/%s/.*%s.*' % (URL, PROJECT, service_id, branch))
 
     @staticmethod
-    def _get_precommit_client(changed_files, deleted_files, fetch_existing_findings=False):
+    def _get_precommit_client(changed_files, deleted_files, fetch_existing_findings=False,
+                              fetch_existing_findings_in_changes=False):
         """Gets a precommit client some of whose methods are mocked out for testing."""
         responses.add(responses.GET, PrecommitClientTest.get_global_service_mock('service-api-info'), status=200,
                       content_type="application/json", body='{"apiVersion": 6}')
         precommit_client = PrecommitClient(PrecommitClientTest._get_precommit_client_config(),
                                            repository_path=REPO_PATH, analyzed_file=ANALYZED_FILE, verify=False,
-                                           omit_links_to_findings=True, fetch_existing_findings=fetch_existing_findings)
+                                           omit_links_to_findings=True, fetch_existing_findings=fetch_existing_findings,
+                                           fetch_existing_findings_in_changes=fetch_existing_findings_in_changes)
         precommit_client._calculate_modifications = Mock()
         precommit_client.current_branch = CURRENT_BRANCH
         precommit_client._retrieve_current_branch = Mock()
@@ -148,8 +180,8 @@ class PrecommitClientTest(TestCase):
         return {}
 
     @staticmethod
-    def _get_two_changed_files():
-        return {REPO_PATH + 'file1.ext': 'def foo():\n  pass'}
+    def _get_changed_file():
+        return {ANALYZED_FILE: 'def foo():\n  pass'}
 
     @staticmethod
     def _get_no_deleted_files():
