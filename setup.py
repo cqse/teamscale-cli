@@ -24,6 +24,8 @@ setup(
           'pygit2'
     ],
     tests_require=[
+          'teamscale-client',
+          'pygit2',
           'pytest',
           'responses'
     ],
