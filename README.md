@@ -1,5 +1,4 @@
-# Teamscale Precommit Command Line Client
-
+# Teamscale Precommit Command Line Client [![Build Status](https://travis-ci.org/cqse/teamscale-cli.svg?branch=master)](https://travis-ci.org/cqse/teamscale-cli) [![PyPI version](https://badge.fury.io/py/teamscale-cli.svg)](https://badge.fury.io/py/teamscale-cli)
 The [Teamscale](https://teamscale.com) precommit command line interface allows you to integrate precommit analysis in editors or IDEs such as VS Code, Emacs or Sublime, by providing findings in a standard error format that can be interpreted like compile time errors.
 
 
@@ -86,6 +85,10 @@ By default, the precommit analysis client will fetch new findings in the changes
   --fetch-existing-findings
                         When this option is set, existing findings in the
                         specified file are fetched in addition to precommit
+                        findings. (default: False)
+  --fetch-existing-findings-in-changes
+                        When this option is set, existing findings in all
+                        changed files are fetched in addition to precommit
                         findings. (default: False)
   --fetch-all-findings
                         When this option is set, all existing findings in the
