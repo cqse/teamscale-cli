@@ -27,7 +27,8 @@ setup(
           'teamscale-client',
           'pygit2',
           'pytest',
-          'responses'
+          'responses',
+          'unittest'
     ],
     setup_requires=["pytest-runner"]
 )
