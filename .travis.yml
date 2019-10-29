@@ -11,9 +11,11 @@ cache:
   directories:
       - $HOME/.cache/pip
 
+before_install:
+    - sudo apt-get -y install libgit2
+
 install:
-    - pip install travis-sphinx sphinx
-    - pip install -e . 
+    - pip install -e .
 
 script:
     - python setup.py test
