@@ -6,6 +6,7 @@ import sys
 if sys.version_info >= (3, 3):
     from unittest.mock import Mock
 else:
+    # This package is not needed in Python >= 3.3
     from mock import Mock
 from unittest import TestCase
 from teamscale_client.teamscale_client_config import TeamscaleClientConfig
@@ -25,8 +26,7 @@ CURRENT_BRANCH ='my_feature_branch'
 class PrecommitClientTest(TestCase):
     """Tests for the precommit client"""
 
-    def __init__(self, methodName):
-        super().__init__(methodName)
+    def setUp(self):
         self.precommit_client = None
 
     @responses.activate
