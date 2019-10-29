@@ -1,6 +1,12 @@
 import responses
 import re
-from unittest.mock import Mock
+import sys
+
+# The mock package is only available from Python 3.3 onwards. Thank you, Python.
+if sys.version_info >= (3, 3):
+    from unittest.mock import Mock
+else:
+    from mock import Mock
 from unittest import TestCase
 from teamscale_client.teamscale_client_config import TeamscaleClientConfig
 from teamscale_precommit_client import PrecommitClient

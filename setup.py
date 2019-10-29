@@ -28,7 +28,7 @@ setup(
           'pygit2',
           'pytest',
           'responses',
-          'unittest'
+          'mock'
     ],
     setup_requires=["pytest-runner"]
 )
