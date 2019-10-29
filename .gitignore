@@ -3,4 +3,4 @@
 /.eggs/
 /teamscale_cli.egg-info/
 /build/
-/.idea/
+.idea/
