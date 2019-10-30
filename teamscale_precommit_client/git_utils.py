@@ -27,6 +27,7 @@ def get_current_branch(path_to_repository):
     return head.shorthand
 
 def get_repo_root_from_file_in_repo(path_to_file_in_repo):
+    """Get the repository root for the given path in the repository."""
     git_folder = discover_repository(path_to_file_in_repo)
     if not git_folder:
         return None

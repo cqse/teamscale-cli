@@ -225,6 +225,7 @@ def _parse_args():
 
 
 def _bool_or_string(string):
+    """Helper to interpret different ways of specifying boolean values."""
     if string in ['t', 'true', 'True']:
         return True
     if string in ['f', 'false', 'False']:
