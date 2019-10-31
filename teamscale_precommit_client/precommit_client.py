@@ -182,7 +182,7 @@ def run():
         print('')
         red_findings_found = precommit_client.print_precommit_results_as_error_string(
             include_findings_in_changed_code=not parsed_args.exclude_findings_in_changed_code)
-    elif not parsed_args.fetch_all_findings and not parsed_args.fetch_üexisting_findings:
+    elif not parsed_args.fetch_all_findings and not parsed_args.fetch_existing_findings:
         print("No changed files found. Did you forget to `git add` new files?")
         exit(0)
 
