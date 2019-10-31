@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from __future__ import print_function
 
 import datetime
+import sys
 import time
 import os
 import argparse
@@ -21,13 +22,14 @@ class PrecommitClient:
     """Client for precommit analysis"""
 
     def __init__(self, teamscale_config, repository_path, analyzed_file=None, verify=True,
-                 omit_links_to_findings=False):
+                 omit_links_to_findings=False, log_to_stderr=False):
         """Constructor"""
         self.teamscale_client = TeamscaleClient(teamscale_config.url, teamscale_config.username,
                                                 teamscale_config.access_token, teamscale_config.project_id, verify)
         self.repository_path = repository_path
         self.analyzed_file = analyzed_file
-        self.omit_links_to_findings=omit_links_to_findings
+        self.omit_links_to_findings = omit_links_to_findings
+        self.log_to_stderr = log_to_stderr
 
     def upload_precommit_data(self, changed_files, deleted_files):
         """Uploads the currently changed files for precommit analysis."""
@@ -37,6 +39,7 @@ class PrecommitClient:
 
         print("Uploading changes on branch '%s' in '%s'..." % (current_branch, self.repository_path))
         precommit_data = PreCommitUploadData(uniformPathToContentMap=changed_files, deletedUniformPaths=deleted_files)
+        print(precommit_data)
         self.teamscale_client.upload_files_for_precommit_analysis(
             datetime.datetime.fromtimestamp(int(parent_commit_timestamp)), precommit_data)
 
@@ -52,15 +55,10 @@ class PrecommitClient:
         """
         added_findings, removed_findings, findings_in_changed_code = self.wait_and_get_precommit_result()
 
-        print('New findings:')
-        for formatted_finding in self._format_findings(added_findings):
-            print(formatted_finding)
+        self._print_findings('New findings:', added_findings)
 
         if include_findings_in_changed_code:
-            print('')
-            print('Findings in changed code:')
-            for formatted_finding in self._format_findings(findings_in_changed_code):
-                print(formatted_finding)
+            self._print_findings('Findings in changed code:', findings_in_changed_code, empty_line=True)
 
         red_added_findings = list(filter(lambda finding: finding.assessment == "RED", added_findings))
         return len(red_added_findings) > 0
@@ -75,10 +73,7 @@ class PrecommitClient:
             uniform_path=uniform_path,
             timestamp=datetime.datetime.fromtimestamp(int(get_current_timestamp(self.repository_path))))
 
-        print('')
-        print('Existing findings:')
-        for formatted_finding in self._format_findings(existing_findings):
-            print(formatted_finding)
+        self._print_findings('Existing findings:', existing_findings, empty_line=True)
 
     def _format_findings(self, findings):
         """Formats the given findings as error or warning strings."""
@@ -94,6 +89,23 @@ class PrecommitClient:
                                              self.teamscale_client.get_finding_url(finding))
                     for finding in sorted_findings]
 
+    def _print_findings(self, caption, findings, empty_line=False):
+        has_findings = self.log_to_stderr and len(findings) > 0
+
+        if empty_line:
+            self._print('', has_findings)
+
+        self._print(caption, has_findings)
+        for formatted_finding in self._format_findings(findings):
+            self._print(formatted_finding, has_findings)
+
+    @staticmethod
+    def _print(message, print_to_err=False):
+        if print_to_err:
+            print(message, file=sys.stderr)
+        else:
+            print(message)
+
     @staticmethod
     def _severity_string(finding):
         """Formats the given finding's assessment as severity."""
@@ -106,28 +118,27 @@ def _parse_args():
     parser.add_argument('path', metavar='path', type=str, nargs=1,
                         help='path to any file in the repository')
     parser.add_argument('--exclude-findings-in-changed-code', dest='exclude_findings_in_changed_code',
-                        action='store_const', const=True, default=False,
+                        action='store_true',
                         help='Determines whether to exclude findings in changed code (default: False)')
-    parser.add_argument('--fetch-existing-findings', dest='fetch_existing_findings', action='store_const',
-                        const=True, default=False,
+    parser.add_argument('--fetch-existing-findings', dest='fetch_existing_findings', action='store_true',
                         help='When this option is set, existing findings in the specified file are fetched in addition '
                              'to precommit findings. (default: False)')
-    parser.add_argument('--fetch-all-findings', dest='fetch_all_findings', action='store_const',
-                        const=True, default=False,
+    parser.add_argument('--fetch-all-findings', dest='fetch_all_findings', action='store_true',
                         help='When this option is set, all existing findings in the repo are fetched in addition '
                              'to precommit findings. (default: False)')
-    parser.add_argument('--fail-on-red-findings', dest='fail_on_red_findings', action='store_const',
-                        const=True, default=False,
+    parser.add_argument('--fail-on-red-findings', dest='fail_on_red_findings', action='store_true',
                         help='When this option is set, the precommit client will exit with a non-zero return value '
                              'whenever RED findings were among the precommit findings. (default: False)')
-    parser.add_argument('--omit-links-to-findings', dest='omit_links_to_findings', action='store_const',
-                        const=True, default=False,
+    parser.add_argument('--omit-links-to-findings', dest='omit_links_to_findings', action='store_true',
                         help='By default, each finding includes a link to the corresponding finding in Teamscale. '
                              'Setting this option omits these links. (default: False)')
     parser.add_argument('--verify', default=True, type=_bool_or_string,
                         help='Path to different certificate file. See requests\' verify parameter in '
                              'http://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification.\n'
                              'Other possible values: True, False (default: True)')
+    parser.add_argument('--log-to-stderr', dest='log_to_stderr', action='store_true',
+                        help='When this option is set, any finding will be logged to stderr instead of stdout: '
+                             '(default: False)')
     return parser.parse_args()
 
 
@@ -143,7 +154,8 @@ def _configure_precommit_client(config_file, repo_path, parsed_args):
     """Reads the precommit analysis configuration and creates a precommit client with the corresponding config."""
     config = get_teamscale_client_configuration(config_file)
     return PrecommitClient(config, repository_path=repo_path, analyzed_file=parsed_args.path[0],
-                           verify=parsed_args.verify, omit_links_to_findings=parsed_args.omit_links_to_findings)
+                           verify=parsed_args.verify, omit_links_to_findings=parsed_args.omit_links_to_findings,
+                           log_to_stderr=parsed_args.log_to_stderr)
 
 
 def run():
@@ -170,8 +182,8 @@ def run():
         print('')
         red_findings_found = precommit_client.print_precommit_results_as_error_string(
             include_findings_in_changed_code=not parsed_args.exclude_findings_in_changed_code)
-    elif not parsed_args.fetch_all_findings and not parsed_args.fetch_existing_findings:
-        print("No changed files found. Forgot to `git add` new files?")
+    elif not parsed_args.fetch_all_findings and not parsed_args.fetch_üexisting_findings:
+        print("No changed files found. Did you forget to `git add` new files?")
         exit(0)
 
     if parsed_args.fetch_existing_findings or parsed_args.fetch_all_findings:
