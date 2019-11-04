@@ -8,7 +8,7 @@ import os
 import argparse
 
 from teamscale_precommit_client.git_utils import get_current_branch, get_current_timestamp
-from teamscale_precommit_client.git_utils import get_changed_files, get_changed_files_and_content, get_deleted_files
+from teamscale_precommit_client.git_utils import get_changed_files_and_content, get_deleted_files
 from teamscale_precommit_client.data import PreCommitUploadData
 from teamscale_client import TeamscaleClient
 from teamscale_precommit_client.client_configuration_utils import get_teamscale_client_configuration

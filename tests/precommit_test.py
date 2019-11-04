@@ -56,7 +56,7 @@ class PrecommitClientTest(TestCase):
 
     @responses.activate
     def test_two_precommit_findings_in_changed_code(self):
-        """Tests that removed findings are interpreted correctly."""
+        """Tests that findings in changed code are interpreted correctly."""
         self.precommit_client = self._get_precommit_client(self._get_changed_file(), self._get_no_deleted_files())
 
         self.mock_precommit_findings_churn(findings_in_changed_code=[1, 2])
