@@ -39,7 +39,6 @@ class PrecommitClient:
 
         print("Uploading changes on branch '%s' in '%s'..." % (current_branch, self.repository_path))
         precommit_data = PreCommitUploadData(uniformPathToContentMap=changed_files, deletedUniformPaths=deleted_files)
-        print(precommit_data)
         self.teamscale_client.upload_files_for_precommit_analysis(
             datetime.datetime.fromtimestamp(int(parent_commit_timestamp)), precommit_data)
 
@@ -90,14 +89,15 @@ class PrecommitClient:
                     for finding in sorted_findings]
 
     def _print_findings(self, caption, findings, empty_line=False):
-        has_findings = self.log_to_stderr and len(findings) > 0
+        # Only log to stderr if there are findings
+        log_to_stderr = self.log_to_stderr and len(findings) > 0
 
         if empty_line:
-            self._print('', has_findings)
+            self._print('', log_to_stderr)
 
-        self._print(caption, has_findings)
+        self._print(caption, log_to_stderr)
         for formatted_finding in self._format_findings(findings):
-            self._print(formatted_finding, has_findings)
+            self._print(formatted_finding, log_to_stderr)
 
     @staticmethod
     def _print(message, print_to_err=False):

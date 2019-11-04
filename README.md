@@ -69,7 +69,7 @@ Go to `Projects` -> `Manage Kits...` -> `Kits` -> `Add`
 
 ![New Teamscale Kit](config/qtcreator_1.png)
 
-The only thing important here to configure is that the compiler are gcc as this will be used to parse the output of the precommit analysis.
+The only thing important here to configure is that the compiler is gcc as this will be used to parse the output of the precommit analysis.
 
 Next you need to add the actual run config. Go to `Projects` -> `Teamscale` -> `Build` and remove all default `Build` and `Clean Steps` (there should be a small x when hovering over them)  
 Then go to `Projects` -> `Teamscale` -> `Run`, and add a new `Run Configuration` (After doing so you can remove the default, as the Kit needs at least one). You can also rename the run config to, for example,
@@ -84,7 +84,7 @@ Command line arguments: -c "from teamscale_precommit_client.precommit_client imp
 ```
 
 Note that the flag **--log-to-stderr** is mandatory, otherwise QTCreator will not recognize the findings.  
-The environment variable `%{CurrentProject:Path}` can be changed to `%{CurrentProject:Path}` for example, which will make the precommit analysis only fetch findings for the currently opened file.  
+The environment variable `%{CurrentProject:Path}` can be changed to `%{CurrentDocument:FilePath}` for example, which will make the precommit analysis only fetch findings for the currently opened file.  
 For other possible environment variables click on the little **A->B** button (Marked with a red box in the picture above).  
 The last parameter has to be either a folder or specific file for which the precommit analysis should be run, so here you can add as many different precommit analyses configuration as you wish.  
 If you want to see the different options of the precommit analysis itself, just run it with the `-h` flag.
