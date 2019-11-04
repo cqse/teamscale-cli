@@ -114,7 +114,7 @@ class PrecommitClientTest(TestCase):
         self.assert_findings_ids(self.precommit_client.existing_findings, [4, 5, 6, 7])
 
     @responses.activate
-    def test_get_added_and_existing_findings_for_changes(self):
+    def test_get_added_and_existing_findings_in_changes_for_changes(self):
         """Tests that calling the precommit client with changes and with the flag to retrieve existing findings
         yields the added findings plus the existing findings (with potentially different locations) on the precommit
         branch.
