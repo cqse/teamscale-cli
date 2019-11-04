@@ -1,5 +1,4 @@
-# Teamscale Precommit Command Line Client
-
+# Teamscale Precommit Command Line Client [![Build Status](https://travis-ci.org/cqse/teamscale-cli.svg?branch=master)](https://travis-ci.org/cqse/teamscale-cli) [![PyPI version](https://badge.fury.io/py/teamscale-cli.svg)](https://badge.fury.io/py/teamscale-cli) [![Teamscale Project](https://img.shields.io/badge/teamscale-teamscale--cli-brightgreen.svg)](https://demo.teamscale.com/activity.html#/teamscale-cli)
 The [Teamscale](https://teamscale.com) precommit command line interface allows you to integrate precommit analysis in editors or IDEs such as VS Code, Emacs or Sublime, by providing findings in a standard error format that can be interpreted like compile time errors.
 
 
@@ -19,7 +18,7 @@ The [Teamscale](https://teamscale.com) precommit command line interface allows y
 4. Use this script as compile or build command in your editor or IDE. See below for more information and a couple of examples on how to accomplish this. Provide a file or folder within your repository as input. The general invocation looks like this:
 
  ```bash
- $ python -c "from teamscale_precommit_client.precommit_client import run;run()" ANY_FILE_OR_FOLDER_IN_YOUR_REPO
+ $ teamscale-cli ANY_FILE_OR_FOLDER_IN_YOUR_REPO
  ```
 
 5. The behavior of the client can be tweaked with several arguments. Run the client with the ```-h``` argument to get the usage.
@@ -36,14 +35,14 @@ This allows you to use the highlighting capabilities of your editors to mark the
 
 ### Sublime
 
-Add a new *Build System* under `Tools > Build System`. Locate `config/teamscale-precommit.sublime-build` in this repo. Copy and paste the snippet and modify to your needs (e.g. `python` vs. `python3`).
+Add a new *Build System* under `Tools > Build System`. Locate `config/teamscale-precommit.sublime-build` in this repo. Copy and paste the snippet and modify the arguments to fit your needs.
 
 ### Xcode
 
 Add a new *Build Phase* (`New Run Script Phase`) to your project. Enter the following command as shell script in that phase (see screenshot):
 
 ```bash
-python -c "from teamscale_precommit_client.precommit_client import run;run()" ${SRCROOT} --fail-on-red-findings
+teamscale-cli ${SRCROOT} --fail-on-red-findings
 ```
 
 ![Configuring the Build Phase in Xcode](config/xcode_1.png)
@@ -86,6 +85,10 @@ By default, the precommit analysis client will fetch new findings in the changes
   --fetch-existing-findings
                         When this option is set, existing findings in the
                         specified file are fetched in addition to precommit
+                        findings. (default: False)
+  --fetch-existing-findings-in-changes
+                        When this option is set, existing findings in all
+                        changed files are fetched in addition to precommit
                         findings. (default: False)
   --fetch-all-findings
                         When this option is set, all existing findings in the

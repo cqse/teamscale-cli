@@ -1,0 +1,21 @@
+sudo: false
+
+language: python
+
+python:
+  - "2.7"
+  - "3.4"
+  - "3.5"
+
+cache:
+  directories:
+      - $HOME/.cache/pip
+
+before_install:
+    - sudo apt-get -y install libgit2-dev
+
+install:
+    - pip install -e .
+
+script:
+    - python setup.py test
