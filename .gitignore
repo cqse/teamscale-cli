@@ -1,1 +1,9 @@
-.idea/*
+/venv/
+/dist/
+/.eggs/
+/teamscale_cli.egg-info/
+/build/
+.idea/
+__pycache__/
+.DS_Store
+*.pyc
