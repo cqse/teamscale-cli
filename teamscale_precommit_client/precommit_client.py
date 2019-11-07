@@ -90,6 +90,7 @@ class PrecommitClient:
 
     def _print_findings(self, caption, findings, empty_line=False):
         # Only log to stderr if there are findings
+        # Otherwise it looks weird if "no findings" is marked as red (in QTCreator for example)
         log_to_stderr = self.log_to_stderr and len(findings) > 0
 
         if empty_line:
