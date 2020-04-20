@@ -5,6 +5,7 @@ from __future__ import print_function
 import datetime
 import time
 import os
+import sys
 import argparse
 
 from teamscale_precommit_client.git_utils import get_current_branch, get_current_timestamp
@@ -25,7 +26,8 @@ class PrecommitClient:
 
     def __init__(self, teamscale_config, repository_path, analyzed_file=None, verify=True,
                  omit_links_to_findings=False, exclude_findings_in_changed_code=False, fetch_existing_findings=False,
-                 fetch_all_findings=False, fetch_existing_findings_in_changes=False, fail_on_red_findings=False):
+                 fetch_all_findings=False, fetch_existing_findings_in_changes=False, fail_on_red_findings=False,
+                 log_to_stderr=False):
         """Constructor"""
         self.teamscale_client = TeamscaleClient(teamscale_config.url, teamscale_config.username,
                                                 teamscale_config.access_token, teamscale_config.project_id, verify)
@@ -37,6 +39,7 @@ class PrecommitClient:
         self.fetch_all_findings = fetch_all_findings
         self.fetch_existing_findings_in_changes = fetch_existing_findings_in_changes
         self.fail_on_red_findings = fail_on_red_findings
+        self.log_to_stderr = log_to_stderr
         self.changed_files = {}
         self.deleted_files = []
         self.added_findings = []
@@ -57,7 +60,7 @@ class PrecommitClient:
             self._do_precommit_analysis()
             self._print_precommit_results_as_error_string() # Always uses precommit branch
         elif not self.fetch_all_findings and not self.fetch_existing_findings:
-            print("No changed files found. Forgot to `git add` new files?")
+            print("No changed files found. Did you forget to `git add` new files?")
             exit(0)
 
         if self.fetch_existing_findings_in_changes:
@@ -117,10 +120,21 @@ class PrecommitClient:
 
     def _print_findings(self, message, findings, branch):
         """Print the specified list of findings for the specified branch, in a way most text editors understand. """
-        print('')
-        print(message)
+        # Only log to stderr if there are findings
+        # Otherwise it looks weird if "no findings" is marked as red (in QTCreator for example)
+        log_to_stderr = self.log_to_stderr and len(findings) > 0
+
+        self._print('', log_to_stderr)
+        self._print(message, log_to_stderr)
         for formatted_finding in self._format_findings(findings, branch):
-            print(formatted_finding)
+            self._print(formatted_finding, log_to_stderr)
+
+    @staticmethod
+    def _print(message, print_to_err=False):
+        if print_to_err:
+            print(message, file=sys.stderr)
+        else:
+            print(message)
 
     def _print_precommit_results_as_error_string(self):
         """Print the current precommit results formatting them in a way, most text editors understand."""
@@ -221,6 +235,9 @@ def _parse_args():
                         help='Path to different certificate file. See requests\' verify parameter in '
                              'http://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification.\n'
                              'Other possible values: True, False (default: True)')
+    parser.add_argument('--log-to-stderr', dest='log_to_stderr', action='store_true',
+                        help='When this option is set, any finding will be logged to stderr instead of stdout: '
+                             '(default: False)')
     return parser.parse_args()
 
 
@@ -245,7 +262,8 @@ def _configure_precommit_client(parsed_args):
                            fetch_existing_findings=parsed_args.fetch_existing_findings,
                            fetch_all_findings=parsed_args.fetch_all_findings,
                            fetch_existing_findings_in_changes=parsed_args.fetch_existing_findings_in_changes,
-                           fail_on_red_findings=parsed_args.fail_on_red_findings)
+                           fail_on_red_findings=parsed_args.fail_on_red_findings,
+                           log_to_stderr=parsed_args.log_to_stderr)
 
 
 def run():

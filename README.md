@@ -23,6 +23,8 @@ The [Teamscale](https://teamscale.com) precommit command line interface allows y
 
 5. The behavior of the client can be tweaked with several arguments. Run the client with the ```-h``` argument to get the usage.
 
+### Problems
+- If python is not finding the name ConverterMapping try uninstalling the python-configparser package and install the configparser via pip/pip3
 
 ## How to perform precommit analysis
 
@@ -60,6 +62,31 @@ Add a new task (`Terminal -> Configure Tasks`) and name it `Teamscale Precommit 
 Locate `config/teamscale.vim` and put in into `~/.vim/compiler`. Modify to your needs (e.g. `python` vs. `python3`).
 This should allow you to do `:compiler teamscale` and `:make %`. Then you should be able to use your usual workflow (e.g. `:cn`) to go through the findings.
 
+### QTCreator
+In order to use the precommit Analysis in QTCreator you need to add a new Kit (Teamscale does **not** have to be the default one)  
+Go to `Projects` -> `Manage Kits...` -> `Kits` -> `Add`  
+
+![New Teamscale Kit](config/qtcreator_1.png)
+
+The only thing important here to configure is that the compiler is gcc as this will be used to parse the output of the precommit analysis.
+
+Next you need to add the actual run config. Go to `Projects` -> `Teamscale` -> `Build` and remove all default `Build` and `Clean Steps` (there should be a small x when hovering over them)  
+Then go to `Projects` -> `Teamscale` -> `Run`, and add a new `Run Configuration` (After doing so you can remove the default, as the Kit needs at least one). You can also rename the run config to, for example,
+**Precommit**
+
+![Precommit](config/qtcreator_2.png)
+
+Then configure it as follows:  
+```
+Executable: python3 (or python)  
+Command line arguments: -c "from teamscale_precommit_client.precommit_client import run;run()" --log-to-stderr %{CurrentProject:Path}
+```
+
+Note that the flag **--log-to-stderr** is mandatory, otherwise QTCreator will not recognize the findings.  
+The environment variable `%{CurrentProject:Path}` can be changed to `%{CurrentDocument:FilePath}` for example, which will make the precommit analysis only fetch findings for the currently opened file.  
+For other possible environment variables click on the little **A->B** button (Marked with a red box in the picture above).  
+The last parameter has to be either a folder or specific file for which the precommit analysis should be run, so here you can add as many different precommit analyses configuration as you wish.  
+If you want to see the different options of the precommit analysis itself, just run it with the `-h` flag.
 
 ## More details
 
