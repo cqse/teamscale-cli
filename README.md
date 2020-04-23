@@ -13,7 +13,7 @@ The [Teamscale](https://teamscale.com) precommit command line interface allows y
  $ pip install teamscale-cli
  ```
 
-3. Copy the configuration file ```config/.teamscale-precommit.config``` to the root directory of the repository you want to analyze. Edit it and insert all the necessary data.
+3. Copy the configuration file ```config/.teamscale-precommit.config``` to the root directory of the repository you want to analyze. Edit it and insert all the necessary data. You can find your personal access token by opening Teamscale and clicking on your Avatar in the top right corner.
 
 4. Use this script as compile or build command in your editor or IDE. See below for more information and a couple of examples on how to accomplish this. Provide a file or folder within your repository as input. The general invocation looks like this:
 
