@@ -24,7 +24,7 @@ class PrecommitClient:
     # Number of seconds the client waits until fetching precommit results from the server.
     PRECOMMIT_WAITING_TIME_IN_SECONDS = 2
 
-    def __init__(self, teamscale_config, repository_path, path_prefix, analyzed_file=None, verify=True,
+    def __init__(self, teamscale_config, repository_path, path_prefix, project_subpath, analyzed_file=None, verify=True,
                  omit_links_to_findings=False, exclude_findings_in_changed_code=False, fetch_existing_findings=False,
                  fetch_all_findings=False, fetch_existing_findings_in_changes=False, fail_on_red_findings=False,
                  log_to_stderr=False):
@@ -33,6 +33,7 @@ class PrecommitClient:
                                                 teamscale_config.access_token, teamscale_config.project_id, verify)
         self.repository_path = repository_path
         self.path_prefix = path_prefix
+        self.project_subpath = project_subpath
         self.analyzed_file = analyzed_file
         self.omit_links_to_findings = omit_links_to_findings
         self.exclude_findings_in_changed_code = exclude_findings_in_changed_code
@@ -106,13 +107,24 @@ class PrecommitClient:
             map_with_prefixes[self.path_prefix + key] = uniform_path_content_map[key]
         return map_with_prefixes
 
+    def remove_files_not_in_project_path(self, uniform_path_content_map):
+        project_files_map = {}
+        for key in uniform_path_content_map.keys():
+            if key.startswith(self.project_subpath):  # TODO add parameter
+                project_files_map[key] = uniform_path_content_map[key]
+        return project_files_map
+
     def _upload_precommit_data(self):
         """Uploads the currently changed files for precommit analysis."""
         self.teamscale_client.branch = self.current_branch
 
         print("Uploading changes on branch '%s' in '%s'..." % (self.current_branch, self.repository_path))
-        changed_files_with_path_prefix = self.apply_path_prefix(self.changed_files)
-        deleted_files_with_path_prefix = list(map(lambda path: self.path_prefix + path, self.deleted_files))
+        changed_files_in_project = self.remove_files_not_in_project_path(self.changed_files)
+        deleted_files_in_project = list(filter(lambda path: path.startswith(self.project_subpath), self.deleted_files))
+        # changed_files_in_project = self.changed_files
+        # deleted_files_in_project = self.deleted_files
+        changed_files_with_path_prefix = self.apply_path_prefix(changed_files_in_project)
+        deleted_files_with_path_prefix = list(map(lambda path: self.path_prefix + path, deleted_files_in_project))
         precommit_data = PreCommitUploadData(uniformPathToContentMap=changed_files_with_path_prefix,
                                              deletedUniformPaths=deleted_files_with_path_prefix)
         self.teamscale_client.upload_files_for_precommit_analysis(
@@ -127,6 +139,12 @@ class PrecommitClient:
         """Returns the precommit branch of the current user."""
         return '__precommit__%s' % self.teamscale_client.username
 
+    def remove_path_prefix(self, path):
+        # TODO move to utils
+        if path.startswith(self.path_prefix):
+            return path[len(self.path_prefix):]
+        return path
+
     def _print_findings(self, message, findings, branch):
         """Print the specified list of findings for the specified branch, in a way most text editors understand. """
         # Only log to stderr if there are findings
@@ -135,7 +153,13 @@ class PrecommitClient:
 
         self._print('', log_to_stderr)
         self._print(message, log_to_stderr)
-        for formatted_finding in self._format_findings(findings, branch):
+        for finding in findings:
+            finding.uniformPath = self.remove_path_prefix(finding.uniformPath)
+
+        filtered_findings = list(
+            filter(lambda finding: finding.uniformPath.startswith(self.project_subpath), findings))  # TDODO rename
+
+        for formatted_finding in self._format_findings(filtered_findings, branch):
             self._print(formatted_finding, log_to_stderr)
 
     @staticmethod
@@ -248,6 +272,8 @@ def _parse_args():
                         help='When this option is set, any finding will be logged to stderr instead of stdout: '
                              '(default: False)')
     parser.add_argument('--path-prefix', metavar='path_prefix', type=str, nargs=1, help='Path prefix on Teamscale')
+    parser.add_argument('--project-subpath', metavar='project-subpath', type=str, nargs=1,
+                        help='Project path relative to the git repository. Pre-commit analysis will only be done for files under this path.')
     return parser.parse_args()
 
 
@@ -266,10 +292,13 @@ def _configure_precommit_client(parsed_args):
     path_prefix = ""
     if parsed_args.path_prefix is not None:
         path_prefix = parsed_args.path_prefix[0] + "/"
+    project_subpath = ""
+    if parsed_args.project_subpath is not None:
+        project_subpath = parsed_args.project_subpath[0]
     repo_path = get_repo_root_from_file_in_repo(os.path.normpath(path_to_file_in_repo))
     config_file = os.path.join(repo_path, PRECOMMIT_CONFIG_FILENAME)
     config = get_teamscale_client_configuration(config_file)
-    return PrecommitClient(config, repository_path=repo_path, path_prefix=path_prefix,
+    return PrecommitClient(config, repository_path=repo_path, path_prefix=path_prefix, project_subpath=project_subpath,
                            analyzed_file=path_to_file_in_repo,
                            verify=parsed_args.verify, omit_links_to_findings=parsed_args.omit_links_to_findings,
                            exclude_findings_in_changed_code=parsed_args.exclude_findings_in_changed_code,
