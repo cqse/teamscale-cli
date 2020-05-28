@@ -291,7 +291,7 @@ def _configure_precommit_client(parsed_args):
     path_to_file_in_repo = parsed_args.path[0]
     path_prefix = ""
     if parsed_args.path_prefix is not None:
-        path_prefix = parsed_args.path_prefix[0] + "/"
+        path_prefix = parsed_args.path_prefix[0] + "/" # TODO Don't append a / if the path_prefix already ends in one
     project_subpath = ""
     if parsed_args.project_subpath is not None:
         project_subpath = parsed_args.project_subpath[0]
