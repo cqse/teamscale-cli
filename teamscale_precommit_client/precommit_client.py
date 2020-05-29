@@ -127,11 +127,20 @@ class PrecommitClient:
         """Returns the precommit branch of the current user."""
         return '__precommit__%s' % self.teamscale_client.username
 
+    def remove_path_prefix(self, path):
+        # TODO move to utils
+        if path.startswith(self.path_prefix):
+            return path[len(self.path_prefix):]
+        return path
+
     def _print_findings(self, message, findings, branch):
         """Print the specified list of findings for the specified branch, in a way most text editors understand. """
         # Only log to stderr if there are findings
         # Otherwise it looks weird if "no findings" is marked as red (in QTCreator for example)
         log_to_stderr = self.log_to_stderr and len(findings) > 0
+
+        for finding in findings:
+            finding.uniformPath = self.remove_path_prefix(finding.uniformPath)
 
         self._print('', log_to_stderr)
         self._print(message, log_to_stderr)
