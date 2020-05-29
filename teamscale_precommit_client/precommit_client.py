@@ -24,7 +24,7 @@ class PrecommitClient:
     # Number of seconds the client waits until fetching precommit results from the server.
     PRECOMMIT_WAITING_TIME_IN_SECONDS = 2
 
-    def __init__(self, teamscale_config, repository_path, path_prefix, analyzed_file=None, verify=True,
+    def __init__(self, teamscale_config, repository_path, path_prefix='', analyzed_file=None, verify=True,
                  omit_links_to_findings=False, exclude_findings_in_changed_code=False, fetch_existing_findings=False,
                  fetch_all_findings=False, fetch_existing_findings_in_changes=False, fail_on_red_findings=False,
                  log_to_stderr=False):
@@ -32,7 +32,8 @@ class PrecommitClient:
         self.teamscale_client = TeamscaleClient(teamscale_config.url, teamscale_config.username,
                                                 teamscale_config.access_token, teamscale_config.project_id, verify)
         self.repository_path = repository_path
-        self.path_prefix = path_prefix
+        # os.path.join is required to add a tailing / if it's not already there
+        self.path_prefix = os.path.join(path_prefix, '')
         self.analyzed_file = analyzed_file
         self.omit_links_to_findings = omit_links_to_findings
         self.exclude_findings_in_changed_code = exclude_findings_in_changed_code
@@ -272,12 +273,10 @@ def _bool_or_string(string):
 def _configure_precommit_client(parsed_args):
     """Reads the precommit analysis configuration and creates a precommit client with the corresponding config."""
     path_to_file_in_repo = parsed_args.path[0]
-    # os.path.join is required to add a tailing / if it's not already there
-    path_prefix = os.path.join(parsed_args.path_prefix, '')
     repo_path = get_repo_root_from_file_in_repo(os.path.normpath(path_to_file_in_repo))
     config_file = os.path.join(repo_path, PRECOMMIT_CONFIG_FILENAME)
     config = get_teamscale_client_configuration(config_file)
-    return PrecommitClient(config, repository_path=repo_path, path_prefix=path_prefix,
+    return PrecommitClient(config, repository_path=repo_path, path_prefix=parsed_args.path_prefix,
                            analyzed_file=path_to_file_in_repo,
                            verify=parsed_args.verify, omit_links_to_findings=parsed_args.omit_links_to_findings,
                            exclude_findings_in_changed_code=parsed_args.exclude_findings_in_changed_code,
