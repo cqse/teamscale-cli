@@ -139,9 +139,6 @@ class PrecommitClient:
         # Otherwise it looks weird if "no findings" is marked as red (in QTCreator for example)
         log_to_stderr = self.log_to_stderr and len(findings) > 0
 
-        for finding in findings:
-            finding.uniformPath = self._remove_path_prefix(finding.uniformPath)
-
         self._print('', log_to_stderr)
         self._print(message, log_to_stderr)
         for formatted_finding in self._format_findings(findings, branch):
@@ -203,16 +200,19 @@ class PrecommitClient:
         sorted_findings = sorted(findings)
 
         if self.omit_links_to_findings:
-            return ['%s:%i:1: %s: %s' % (os.path.join(self.repository_path, finding.uniformPath), finding.startLine,
-                                         self._get_finding_severity_message(finding=finding), finding.message) for
+            return ['%s:%i:1: %s: %s' % (
+                os.path.join(self.repository_path, self._remove_path_prefix(finding.uniformPath)), finding.startLine,
+                self._get_finding_severity_message(finding=finding), finding.message) for
                     finding in sorted_findings]
         else:
             return [
-                '%s:%i:1: %s: %s (%s)' % (os.path.join(self.repository_path, finding.uniformPath), finding.startLine,
-                                          self._get_finding_severity_message(finding=finding), finding.message,
-                                          '%s&t=%s' %
-                                          (self.teamscale_client.get_finding_url(finding),
-                                           self.teamscale_client._get_timestamp_parameter(timestamp=None)))
+                '%s:%i:1: %s: %s (%s)' % (
+                    os.path.join(self.repository_path, self._remove_path_prefix(finding.uniformPath)),
+                    finding.startLine,
+                    self._get_finding_severity_message(finding=finding), finding.message,
+                    '%s&t=%s' %
+                    (self.teamscale_client.get_finding_url(finding),
+                     self.teamscale_client._get_timestamp_parameter(timestamp=None)))
                 for finding in sorted_findings]
 
     @staticmethod
