@@ -1,18 +1,19 @@
 from __future__ import absolute_import
-from __future__ import unicode_literals
 from __future__ import print_function
+from __future__ import unicode_literals
 
+import argparse
 import datetime
-import time
 import os
 import sys
-import argparse
+import time
 
-from teamscale_precommit_client.git_utils import get_current_branch, get_current_timestamp
-from teamscale_precommit_client.git_utils import get_changed_files_and_content, get_deleted_files
-from teamscale_precommit_client.data import PreCommitUploadData
 from teamscale_client import TeamscaleClient
+
 from teamscale_precommit_client.client_configuration_utils import get_teamscale_client_configuration
+from teamscale_precommit_client.data import PreCommitUploadData
+from teamscale_precommit_client.git_utils import get_changed_files_and_content, get_deleted_files
+from teamscale_precommit_client.git_utils import get_current_branch, get_current_timestamp
 from teamscale_precommit_client.git_utils import get_repo_root_from_file_in_repo
 
 # Filename of the precommit configuration. The client expects this config file at the root of the repository.
@@ -24,14 +25,16 @@ class PrecommitClient:
     # Number of seconds the client waits until fetching precommit results from the server.
     PRECOMMIT_WAITING_TIME_IN_SECONDS = 2
 
-    def __init__(self, teamscale_config, repository_path, analyzed_file=None, verify=True,
-                 omit_links_to_findings=False, exclude_findings_in_changed_code=False, fetch_existing_findings=False,
-                 fetch_all_findings=False, fetch_existing_findings_in_changes=False, fail_on_red_findings=False,
-                 log_to_stderr=False):
+    def __init__(self, teamscale_config, repository_path, project_subpath='', analyzed_file=None,
+                 verify=True, omit_links_to_findings=False, exclude_findings_in_changed_code=False,
+                 fetch_existing_findings=False, fetch_all_findings=False, fetch_existing_findings_in_changes=False,
+                 fail_on_red_findings=False, log_to_stderr=False):
         """Constructor"""
         self.teamscale_client = TeamscaleClient(teamscale_config.url, teamscale_config.username,
                                                 teamscale_config.access_token, teamscale_config.project_id, verify)
         self.repository_path = repository_path
+        # os.path.join is required to add a tailing / if it's not already there
+        self.project_subpath = os.path.join(project_subpath, '')
         self.analyzed_file = analyzed_file
         self.omit_links_to_findings = omit_links_to_findings
         self.exclude_findings_in_changed_code = exclude_findings_in_changed_code
@@ -58,7 +61,7 @@ class PrecommitClient:
 
         if self.changed_files or self.deleted_files:
             self._do_precommit_analysis()
-            self._print_precommit_results_as_error_string() # Always uses precommit branch
+            self._print_precommit_results_as_error_string()  # Always uses precommit branch
         elif not self.fetch_all_findings and not self.fetch_existing_findings:
             print("No changed files found. Did you forget to `git add` new files?")
             exit(0)
@@ -99,13 +102,23 @@ class PrecommitClient:
         print('')
         self._wait_and_get_precommit_result()
 
+    def remove_files_not_in_project_path(self, uniform_path_content_map):
+        project_files_map = {}
+        for key in uniform_path_content_map.keys():
+            if key.startswith(self.project_subpath):
+                project_files_map[key] = uniform_path_content_map[key]
+        return project_files_map
+
     def _upload_precommit_data(self):
         """Uploads the currently changed files for precommit analysis."""
         self.teamscale_client.branch = self.current_branch
 
         print("Uploading changes on branch '%s' in '%s'..." % (self.current_branch, self.repository_path))
-        precommit_data = PreCommitUploadData(uniformPathToContentMap=self.changed_files,
-                                             deletedUniformPaths=self.deleted_files)
+
+        changed_files_in_project = self.remove_files_not_in_project_path(self.changed_files)
+        deleted_files_in_project = list(filter(lambda path: path.startswith(self.project_subpath), self.deleted_files))
+        precommit_data = PreCommitUploadData(uniformPathToContentMap=changed_files_in_project,
+                                             deletedUniformPaths=deleted_files_in_project)
         self.teamscale_client.upload_files_for_precommit_analysis(
             datetime.datetime.fromtimestamp(self.parent_commit_timestamp), precommit_data)
 
@@ -126,7 +139,11 @@ class PrecommitClient:
 
         self._print('', log_to_stderr)
         self._print(message, log_to_stderr)
-        for formatted_finding in self._format_findings(findings, branch):
+
+        findings_in_project = list(
+            filter(lambda finding: finding.uniformPath.startswith(self.project_subpath), findings))  # TDODO rename
+
+        for formatted_finding in self._format_findings(findings_in_project, branch):
             self._print(formatted_finding, log_to_stderr)
 
     @staticmethod
@@ -238,6 +255,9 @@ def _parse_args():
     parser.add_argument('--log-to-stderr', dest='log_to_stderr', action='store_true',
                         help='When this option is set, any finding will be logged to stderr instead of stdout: '
                              '(default: False)')
+    parser.add_argument('--project-subpath', metavar='project-subpath', type=str, default='',
+                        help='Project path relative to the git repository. '
+                             'Pre-commit analysis will only be done for files under this path.')
     return parser.parse_args()
 
 
@@ -256,7 +276,8 @@ def _configure_precommit_client(parsed_args):
     repo_path = get_repo_root_from_file_in_repo(os.path.normpath(path_to_file_in_repo))
     config_file = os.path.join(repo_path, PRECOMMIT_CONFIG_FILENAME)
     config = get_teamscale_client_configuration(config_file)
-    return PrecommitClient(config, repository_path=repo_path, analyzed_file=path_to_file_in_repo,
+    return PrecommitClient(config, repository_path=repo_path, project_subpath=parsed_args.project_subpath,
+                           analyzed_file=path_to_file_in_repo,
                            verify=parsed_args.verify, omit_links_to_findings=parsed_args.omit_links_to_findings,
                            exclude_findings_in_changed_code=parsed_args.exclude_findings_in_changed_code,
                            fetch_existing_findings=parsed_args.fetch_existing_findings,
