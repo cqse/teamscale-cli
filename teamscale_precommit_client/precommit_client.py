@@ -127,8 +127,7 @@ class PrecommitClient:
         """Returns the precommit branch of the current user."""
         return '__precommit__%s' % self.teamscale_client.username
 
-    def remove_path_prefix(self, path):
-        # TODO move to utils
+    def _remove_path_prefix(self, path):
         if path.startswith(self.path_prefix):
             return path[len(self.path_prefix):]
         return path
@@ -140,7 +139,7 @@ class PrecommitClient:
         log_to_stderr = self.log_to_stderr and len(findings) > 0
 
         for finding in findings:
-            finding.uniformPath = self.remove_path_prefix(finding.uniformPath)
+            finding.uniformPath = self._remove_path_prefix(finding.uniformPath)
 
         self._print('', log_to_stderr)
         self._print(message, log_to_stderr)
@@ -256,7 +255,8 @@ def _parse_args():
     parser.add_argument('--log-to-stderr', dest='log_to_stderr', action='store_true',
                         help='When this option is set, any finding will be logged to stderr instead of stdout: '
                              '(default: False)')
-    parser.add_argument('--path-prefix', metavar='path_prefix', type=str, nargs=1, help='Path prefix on Teamscale')
+    parser.add_argument('--path-prefix', metavar='path_prefix', type=str, help='Path prefix on Teamscale',
+                        default='')
     return parser.parse_args()
 
 
@@ -272,9 +272,8 @@ def _bool_or_string(string):
 def _configure_precommit_client(parsed_args):
     """Reads the precommit analysis configuration and creates a precommit client with the corresponding config."""
     path_to_file_in_repo = parsed_args.path[0]
-    path_prefix = ""
-    if parsed_args.path_prefix is not None:
-        path_prefix = parsed_args.path_prefix[0] + "/"
+    # os.path.join is required to add a tailing / if it's not already there
+    path_prefix = os.path.join(parsed_args.path_prefix, '')
     repo_path = get_repo_root_from_file_in_repo(os.path.normpath(path_to_file_in_repo))
     config_file = os.path.join(repo_path, PRECOMMIT_CONFIG_FILENAME)
     config = get_teamscale_client_configuration(config_file)

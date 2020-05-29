@@ -21,6 +21,7 @@ ACCESS_TOKEN = 'secret'
 REPO_PATH = 'path/to/repo/'
 ANALYZED_FILE = REPO_PATH + 'file.ext'
 CURRENT_BRANCH = 'my_feature_branch'
+PATH_PREFIX = ''
 
 
 class PrecommitClientTest(TestCase):
@@ -168,7 +169,8 @@ class PrecommitClientTest(TestCase):
         responses.add(responses.GET, PrecommitClientTest.get_global_service_mock('service-api-info'), status=200,
                       content_type="application/json", body='{"apiVersion": 6}')
         precommit_client = PrecommitClient(PrecommitClientTest._get_precommit_client_config(),
-                                           repository_path=REPO_PATH, analyzed_file=ANALYZED_FILE, verify=False,
+                                           repository_path=REPO_PATH, path_prefix=PATH_PREFIX,
+                                           analyzed_file=ANALYZED_FILE, verify=False,
                                            omit_links_to_findings=True, fetch_existing_findings=fetch_existing_findings,
                                            fetch_existing_findings_in_changes=fetch_existing_findings_in_changes)
         precommit_client._calculate_modifications = Mock()
