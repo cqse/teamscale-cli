@@ -140,6 +140,8 @@ Be cautious using these flags as there might be many findings in your code base.
                         Path to different certificate file.  See requests' verify
                         parameter in http://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification
                         Other possible values: True, False (default: True)
+  --path-prefix PATH_PREFIX
+                        Path prefix on Teamscale as configured with "Prepend repsoitory identifier" or "Path prefix transformation"
 ```
 
 ## Limits
