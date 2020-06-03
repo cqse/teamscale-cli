@@ -4,7 +4,7 @@ The [Teamscale](https://teamscale.com) pre-commit command line interface allows 
 
 ## Installation
 
-This guide uses `pip` and `python`. If you prefer Python 3, you'll probably have to replace all occurrences with `pip3` and `python3`.
+**This guide uses `pip` and `python`. If you prefer Python 3, you'll probably have to replace all occurrences with `pip3` and `python3`.**
 
 1. Install `libgit2` (https://libgit2.org) on all platforms except Windows
     - On Ubuntu use `apt-get install libgit2-dev`.
@@ -52,24 +52,16 @@ teamscale-cli --fetch-existing-findings CURRENTLY_OPENED_EDITOR_FILE
 
 will output pre-commit findings for all locally changed files plus all existing, unchanged findings in `CURRENTLY_OPENED_EDITOR_FILE`.
 Use this if you also want to have a look at existing findings in the currently opened file, e.g. to clean up old findings while you code.
-**We recommend you use this mode as you can use it to see both the findings in the currently opened file (even before you make any changes to it) and the impact of your local changes before you commit them.**
+**We recommend you use this mode as you can use it to see both the existing findings in the currently opened file (regardless of whether it is changed locally or not and the impact of your local changes before you commit them. This gives you the opportunity to look at existing findings in the files you open and clean some of them up while you work on your code.**
 
 ```
-teamscale-cli --fetch-existing-findings CURRENTLY_OPENED_EDITOR_FILE
+teamscale-cli --fetch-existing-findings-in-changes CURRENTLY_OPENED_EDITOR_FILE
 ```
 
 will output pre-commit findings for all locally changed files plus all existing, unchanged findings in all locally changed files.
 Use this if you always want to clean up in all files where you have made changes.
 
-```
-teamscale-cli --fetch-all-findings CURRENTLY_OPENED_EDITOR_FILE
-```
-
-will output pre-commit findings for all locally changed files plus all existing, unchanged findings in all files in your repo.
-Use this if you want a list of all findings.
-_Be cautious using this flags as there might be many findings in your code base and your editor might not be able to handle them all._
-
-Run the client with the `-h` argument to get the entire usage help.
+Run the client with the `-h` argument to see additional available options.
 
 ## Troubleshooting
 
@@ -79,7 +71,7 @@ Run the client with the `-h` argument to get the entire usage help.
 
 ### Sublime
 
-Add a new *Build System* under `Tools > Build System`. Locate `config/teamscale-precommit.sublime-build` in this repo. Copy and paste the snippet and modify the arguments to fit your needs.
+Add a new *Build System* under `Tools > Build System`. Copy and paste [our example snippet](./config/teamscale-precommit.sublime-build) and modify the arguments to fit your needs.
 
 ### Xcode
 
@@ -89,8 +81,8 @@ Add a new *Build Phase* (`New Run Script Phase`) to your project. Enter the foll
 python -c 'from teamscale_precommit_client.precommit_client import run;run()' ${SRCROOT}
 ```
 
-In Xcode you cannot use `--fetch-existing-findings` since there is unfortunately no environment variable for the currently opened editor file.
-Using this flag would give you all findings in the entire project, which is usually not helpful.
+**In Xcode you cannot use `--fetch-existing-findings` since there is unfortunately no environment variable for the currently opened editor file.
+Using this flag would give you all findings in the entire project, which is usually not helpful.**
 
 ![Configuring the Build Phase in Xcode](config/xcode_1.png)
 
@@ -100,7 +92,7 @@ Screenshot of findings shown in Xcode:
 
 ### VS Code
 
-Add a new task (`Terminal > Configure Tasks > Create tasks.json file from template > Others`) and name it `Teamscale Pre-Commit Analysis`. VS Code will open a sample `tasks.json` for you to edit. Locate `config/teamscale-precommit-vscode-task.json` in this repo. Copy and paste [the example snippet from this repo](./config/teamscale-precommit-vscode-task.json).
+Add a new task (`Terminal > Configure Tasks > Create tasks.json file from template > Others`) and name it `Teamscale Pre-Commit Analysis`. VS Code will open a sample `tasks.json` for you to edit. Copy and paste [the example snippet from this repo](./config/teamscale-precommit-vscode-task.json).
 
 ### Vim
 
@@ -124,18 +116,14 @@ Add a new build configuration:
 
 Then configure it as follows:  
 
-```
-Executable: python
-Command line arguments: -c "from teamscale_precommit_client.precommit_client import run;run()" --fetch-existing-findings --log-to-stderr %{CurrentDocument:FilePath}
-```
+* Executable: `python`
+* Command line arguments: `-c "from teamscale_precommit_client.precommit_client import run;run()" --fetch-existing-findings --log-to-stderr %{CurrentDocument:FilePath}`
 
 The flag `--log-to-stderr` is required as otherwise QtCreator will not recognize the findings.  
 
 You can add more than one build configuration if you want to e.g. sometimes run the teamscale-cli with different arguments.
 
-## Additional Details
-
-### How does change detection work?
+## How does change detection work?
 
 The client detects changes by querying your Git repository for its current status. The following change types will be considered:
 
@@ -146,7 +134,7 @@ The client detects changes by querying your Git repository for its current statu
 
 New files that are not in the index will be ignored.
 
-### Other command line options
+## Other useful command line options
 
 ```
   --fail-on-red-findings
