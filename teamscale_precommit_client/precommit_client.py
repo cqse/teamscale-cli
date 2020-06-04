@@ -1,22 +1,25 @@
 from __future__ import absolute_import
-from __future__ import unicode_literals
 from __future__ import print_function
+from __future__ import unicode_literals
 
+import argparse
+import copy
 import datetime
-import time
 import os
 import sys
-import argparse
+import time
 
-from teamscale_precommit_client.git_utils import get_current_branch, get_current_timestamp
-from teamscale_precommit_client.git_utils import get_changed_files_and_content, get_deleted_files
-from teamscale_precommit_client.data import PreCommitUploadData
 from teamscale_client import TeamscaleClient
+
 from teamscale_precommit_client.client_configuration_utils import get_teamscale_client_configuration
+from teamscale_precommit_client.data import PreCommitUploadData
+from teamscale_precommit_client.git_utils import get_changed_files_and_content, get_deleted_files
+from teamscale_precommit_client.git_utils import get_current_branch, get_current_timestamp
 from teamscale_precommit_client.git_utils import get_repo_root_from_file_in_repo
 
 # Filename of the precommit configuration. The client expects this config file at the root of the repository.
 PRECOMMIT_CONFIG_FILENAME = '.teamscale-precommit.config'
+DEFAULT_PATH_PREFIX = ''
 
 
 class PrecommitClient:
@@ -24,7 +27,8 @@ class PrecommitClient:
     # Number of seconds the client waits until fetching precommit results from the server.
     PRECOMMIT_WAITING_TIME_IN_SECONDS = 2
 
-    def __init__(self, teamscale_config, repository_path, path_prefix='', analyzed_file=None, verify=True,
+    def __init__(self, teamscale_config, repository_path, path_prefix=DEFAULT_PATH_PREFIX, analyzed_file=None,
+                 verify=True,
                  omit_links_to_findings=False, exclude_findings_in_changed_code=False, fetch_existing_findings=False,
                  fetch_all_findings=False, fetch_existing_findings_in_changes=False, fail_on_red_findings=False,
                  log_to_stderr=False):
@@ -32,7 +36,7 @@ class PrecommitClient:
         self.teamscale_client = TeamscaleClient(teamscale_config.url, teamscale_config.username,
                                                 teamscale_config.access_token, teamscale_config.project_id, verify)
         self.repository_path = repository_path
-        # os.path.join is required to add a tailing / if it's not already there
+        # calling os.path.join ensures a tailing '/'
         self.path_prefix = os.path.join(path_prefix, '')
         self.analyzed_file = analyzed_file
         self.omit_links_to_findings = omit_links_to_findings
@@ -101,23 +105,26 @@ class PrecommitClient:
         print('')
         self._wait_and_get_precommit_result()
 
-    def apply_path_prefix(self, uniform_path_content_map):
-        map_with_prefixes = {}
-        for key in uniform_path_content_map.keys():
-            map_with_prefixes[self.path_prefix + key] = uniform_path_content_map[key]
-        return map_with_prefixes
-
     def _upload_precommit_data(self):
         """Uploads the currently changed files for precommit analysis."""
         self.teamscale_client.branch = self.current_branch
 
         print("Uploading changes on branch '%s' in '%s'..." % (self.current_branch, self.repository_path))
-        changed_files_with_path_prefix = self.apply_path_prefix(self.changed_files)
-        deleted_files_with_path_prefix = list(map(lambda path: self.path_prefix + path, self.deleted_files))
+        changed_files_with_path_prefix = self.apply_path_prefix_to_changed_files()
+        deleted_files_with_path_prefix = self.apply_path_prefix_to_deleted_files()
         precommit_data = PreCommitUploadData(uniformPathToContentMap=changed_files_with_path_prefix,
                                              deletedUniformPaths=deleted_files_with_path_prefix)
         self.teamscale_client.upload_files_for_precommit_analysis(
             datetime.datetime.fromtimestamp(self.parent_commit_timestamp), precommit_data)
+
+    def apply_path_prefix_to_changed_files(self):
+        map_with_prefixes = {}
+        for key in self.changed_files.keys():
+            map_with_prefixes[self.path_prefix + key] = self.changed_files[key]
+        return map_with_prefixes
+
+    def apply_path_prefix_to_deleted_files(self):
+        return list(map(lambda path: self.path_prefix + path, self.deleted_files))
 
     def _wait_and_get_precommit_result(self):
         """Gets the current precommit results. Waits synchronously until server is ready. """
@@ -197,23 +204,25 @@ class PrecommitClient:
         if len(findings) == 0:
             return ['> No findings.']
 
-        sorted_findings = sorted(findings)
+        findings_without_path_prefix = list(
+            map(lambda finding: self._remove_path_prefix_from_finding(finding), findings))
+        sorted_findings = sorted(findings_without_path_prefix)
 
         if self.omit_links_to_findings:
-            return ['%s:%i:1: %s: %s' % (
-                os.path.join(self.repository_path, self._remove_path_prefix(finding.uniformPath)), finding.startLine,
-                self._get_finding_severity_message(finding=finding), finding.message) for
+            return ['%s:%i:1: %s: %s' % (os.path.join(self.repository_path, finding.uniformPath), finding.startLine,
+                                         self._get_finding_severity_message(finding=finding), finding.message) for
                     finding in sorted_findings]
         else:
-            return [
-                '%s:%i:1: %s: %s (%s)' % (
-                    os.path.join(self.repository_path, self._remove_path_prefix(finding.uniformPath)),
-                    finding.startLine,
-                    self._get_finding_severity_message(finding=finding), finding.message,
-                    '%s&t=%s' %
-                    (self.teamscale_client.get_finding_url(finding),
-                     self.teamscale_client._get_timestamp_parameter(timestamp=None)))
-                for finding in sorted_findings]
+            return ['%s:%i:1: %s: %s (%s)' % (
+                os.path.join(self.repository_path, finding.uniformPath), finding.startLine,
+                self._get_finding_severity_message(finding=finding), finding.message, '%s&t=%s' % (
+                    self.teamscale_client.get_finding_url(finding),
+                    self.teamscale_client._get_timestamp_parameter(timestamp=None))) for finding in sorted_findings]
+
+    def _remove_path_prefix_from_finding(self, finding):
+        finding_without_path_prefix = copy.deepcopy(finding)
+        finding_without_path_prefix.uniformPath = self._remove_path_prefix(finding_without_path_prefix.uniformPath)
+        return finding_without_path_prefix
 
     @staticmethod
     def _get_finding_severity_message(finding):
@@ -258,7 +267,7 @@ def _parse_args():
                              '(default: False)')
     parser.add_argument('--path-prefix', metavar='PATH_PREFIX', type=str,
                         help='Path prefix on Teamscale as configured with "Prepend repository identifier" or "Path prefix transformation"',
-                        default='')
+                        default=DEFAULT_PATH_PREFIX)
     return parser.parse_args()
 
 
