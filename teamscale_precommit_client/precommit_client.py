@@ -190,7 +190,7 @@ class PrecommitClient:
                     finding in sorted_findings]
         else:
             return [
-                '%s:%i:1: %s: %s (%s)' % (os.path.join(self.repository_path, finding.uniformPath), finding.startLine,
+                '%s:%i:1: %s: %s          (%s)' % (os.path.join(self.repository_path, finding.uniformPath), finding.startLine,
                                           self._get_finding_severity_message(finding=finding), finding.message,
                                           '%s&t=%s' %
                                           (self.teamscale_client.get_finding_url(finding),
