@@ -4,7 +4,7 @@
         {
             "label": "Teamscale Precommit Analysis",
             "type": "shell",
-            "command": "${config:python.pythonPath} -c 'from teamscale_precommit_client.precommit_client import run;run()' --fetch-existing-findings '${file}'",
+            "command": "python -c 'from teamscale_precommit_client.precommit_client import run;run()' --fetch-existing-findings '${file}'",
             "group": {
                 "kind": "build",
                 "isDefault": true
