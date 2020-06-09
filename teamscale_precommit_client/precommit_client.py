@@ -15,12 +15,14 @@ from teamscale_client import TeamscaleClient
 from teamscale_precommit_client.client_configuration_utils import get_teamscale_client_configuration
 from teamscale_precommit_client.git_utils import get_repo_root_from_file_in_repo
 
+
 # Filename of the precommit configuration. The client expects this config file at the root of the repository.
 PRECOMMIT_CONFIG_FILENAME = '.teamscale-precommit.config'
 
 
 class PrecommitClient:
     """Client for precommit analysis"""
+    # TODO test
     # Number of seconds the client waits until fetching precommit results from the server.
     PRECOMMIT_WAITING_TIME_IN_SECONDS = 2
 
@@ -183,19 +185,24 @@ class PrecommitClient:
             return ['> No findings.']
 
         sorted_findings = sorted(findings)
+        return [self._format_message(finding) for finding in sorted_findings]
 
+    def _format_message(self, finding):
+        location = os.path.join(self.repository_path, finding.uniformPath)
+        severity = self._get_finding_severity_message(finding=finding)
+        link = '%s&t=%s' % (self.teamscale_client.get_finding_url(finding),
+                self.teamscale_client._get_timestamp_parameter(timestamp=None))
+
+        message = finding.message
+        if not self.omit_links_to_findings:
+            message = message.ljust(80)
+
+        message = '%s:%i:1: %s: %s' % (location, finding.startLine, severity, message)
         if self.omit_links_to_findings:
-            return ['%s:%i:1: %s: %s' % (os.path.join(self.repository_path, finding.uniformPath), finding.startLine,
-                                         self._get_finding_severity_message(finding=finding), finding.message) for
-                    finding in sorted_findings]
-        else:
-            return [
-                '%s:%i:1: %s: %s          (%s)' % (os.path.join(self.repository_path, finding.uniformPath), finding.startLine,
-                                          self._get_finding_severity_message(finding=finding), finding.message,
-                                          '%s&t=%s' %
-                                          (self.teamscale_client.get_finding_url(finding),
-                                           self.teamscale_client._get_timestamp_parameter(timestamp=None)))
-                for finding in sorted_findings]
+            return message
+
+        return '%s | (%s)' % (message, link)
+
 
     @staticmethod
     def _get_finding_severity_message(finding):
