@@ -49,7 +49,15 @@ teamscale-cli ${SRCROOT} --fail-on-red-findings
 
 ![Configuring the Build Phase in Xcode](config/xcode_1.png)
 
-As you're on a Mac, make sure to use the correct Python version in that snippet, which might be `python3`. The option `--fail-on-red-findings` will fail your Xcode build if new RED findings were found. You might decide to drop that flag. If you've done it right, Xcode will show all findings inlined as seen on the following screenshot:
+As you're on a Mac, make sure to use the correct Python version in that snippet, which might be `python3`. Also keep in mind that Xcode might run its own copy of python. You might want to explicitly specify the python executable.
+Sometimes, macOS does not find `teamscale-cli`. In that case, you can also use the following snippet:
+
+```bash
+# Make sure to point to the python for which you installed the teamscale-cli.
+python3 -c "from teamscale_precommit_client.precommit_client import run;run()" ${SRCROOT} --fail-on-red-findings
+```
+
+The option `--fail-on-red-findings` will fail your Xcode build if new RED findings were found. You might decide to drop that flag. If you've done it right, Xcode will show all findings inlined as seen on the following screenshot:
 
 ![Teamscale Findings in Xcode](config/xcode_2.png)
 
