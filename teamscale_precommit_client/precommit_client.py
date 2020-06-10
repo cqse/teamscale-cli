@@ -15,14 +15,12 @@ from teamscale_client import TeamscaleClient
 from teamscale_precommit_client.client_configuration_utils import get_teamscale_client_configuration
 from teamscale_precommit_client.git_utils import get_repo_root_from_file_in_repo
 
-
 # Filename of the precommit configuration. The client expects this config file at the root of the repository.
 PRECOMMIT_CONFIG_FILENAME = '.teamscale-precommit.config'
 
 
 class PrecommitClient:
     """Client for precommit analysis"""
-    # TODO test
     # Number of seconds the client waits until fetching precommit results from the server.
     PRECOMMIT_WAITING_TIME_IN_SECONDS = 2
 
