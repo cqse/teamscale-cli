@@ -21,7 +21,7 @@ The [Teamscale](https://teamscale.com) pre-commit command line interface allows 
 
 3. Copy the example configuration file [.teamscale-precommit.config](./config/.teamscale-precommit.config) to the root directory of the repository you want to analyze. Edit it and insert all the necessary data. You can find your personal access token by opening Teamscale and clicking on your Avatar in the top right corner.
 
-5. The behavior of the client can be tweaked with several arguments. Run the client with the ```-h``` argument to get the usage.
+5. The behavior of the client can be tweaked with several arguments. Run the client with the `-h` argument to get the usage.
 
     ```bash
     $ teamscale-cli [OPTIONS] CURRENTLY_OPENED_EDITOR_FILE
@@ -35,7 +35,7 @@ The [Teamscale](https://teamscale.com) pre-commit command line interface allows 
 Path to file:line number:Column: (warning|error): Message
 ```
 
-This allows you to use the highlighting capabilities of your editors to highlight lines with findings in the editor and to jump to the finding location from the pre-commit console output. For your convenience, we've provided sample configurations for some editors and IDEs below.
+This allows you to use the highlighting capabilities of your editors to highlight lines with findings in the editor and to jump to the finding location from the pre-commit console output. For your convenience, we've provided [sample configurations for some editors and IDEs below](#instructions-for-popular-editors).
 
 Which findings are output is controlled by several command line options:
 
@@ -52,7 +52,7 @@ teamscale-cli --fetch-existing-findings CURRENTLY_OPENED_EDITOR_FILE
 
 will output pre-commit findings for all locally changed files plus all existing, unchanged findings in `CURRENTLY_OPENED_EDITOR_FILE`.
 Use this if you also want to have a look at existing findings in the currently opened file, e.g. to clean up old findings while you code.
-**We recommend you use this mode as you can use it to see both the existing findings in the currently opened file (regardless of whether it is changed locally or not and the impact of your local changes before you commit them. This gives you the opportunity to look at existing findings in the files you open and clean some of them up while you work on your code.**
+**We recommend you use this mode as you can use it to see both the existing findings in the currently opened file (regardless of whether it is changed locally or not) and the impact of your local changes before you commit them. This gives you the opportunity to look at existing findings in the files you open and clean some of them up while you work on your code.**
 
 ```
 teamscale-cli --fetch-existing-findings-in-changes CURRENTLY_OPENED_EDITOR_FILE
@@ -62,10 +62,6 @@ will output pre-commit findings for all locally changed files plus all existing,
 Use this if you always want to clean up in all files where you have made changes.
 
 Run the client with the `-h` argument to see additional available options.
-
-## Troubleshooting
-
-- If python does not find the name `ConverterMapping` try uninstalling the `python-configparser` system package and install `configparser` via pip.
 
 ## Instructions for Popular Editors
 
@@ -97,7 +93,7 @@ Add a new task (`Terminal > Configure Tasks > Create tasks.json file from templa
 ### Vim
 
 Copy [the teamscale-cli vim file](./config/teamscale.vim) to `~/.vim/compiler` and restart Vim.
-This should allow you to run `:compiler teamscale` and `:make %`. Then you should be able to use your usual workflow (e.g. `:cn`) to go through the findings.
+This should allow you to run `:compiler teamscale` and `:make %`. Then, you should be able to use your usual workflow (e.g. `:cn`) to go through the findings.
 
 ### Qt Creator
 
@@ -134,22 +130,9 @@ The client detects changes by querying your Git repository for its current statu
 
 New files that are not in the index will be ignored.
 
-## Other useful command line options
+## Troubleshooting
 
-```
-  --fail-on-red-findings
-                        When this option is set, the precommit client will exit
-                        with a non-zero return value whenever RED findings were
-                        among the precommit findings. (default: False)
-  --omit-links-to-findings
-                        By default, each finding includes a link to the
-                        corresponding finding in Teamscale. Setting this
-                        option omits these links. (default: False)
-  --verify
-                        Path to different certificate file.  See requests' verify
-                        parameter in http://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification
-                        Other possible values: True, False (default: True)
-```
+- If python does not find the name `ConverterMapping` try uninstalling the `python-configparser` system package and install `configparser` via pip.
 
 ## Limits
 
