@@ -17,7 +17,7 @@ The [Teamscale](https://teamscale.com) pre-commit command line interface allows 
 	$ pip install teamscale-cli
 	```
 
-The `teamscale-cli` executable will be installed to `~/.local/bin/teamscale-cli`. Please ensure it is on your `PATH`.
+	The `teamscale-cli` executable will be installed to `~/.local/bin/teamscale-cli`. Please ensure it is on your `PATH`.
 
 3. Copy the example configuration file [.teamscale-precommit.config](./config/.teamscale-precommit.config) to the root directory of the repository you want to analyze. Edit it and insert all the necessary data. You can find your personal access token by opening Teamscale and clicking on your Avatar in the top right corner.
 
