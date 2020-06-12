@@ -99,7 +99,7 @@ Add a new task (`Terminal > Configure Tasks > Create tasks.json file from templa
 Copy [the teamscale-cli vim file](./config/teamscale.vim) to `~/.vim/compiler` and restart Vim.
 This should allow you to run `:compiler teamscale` and `:make %`. Then you should be able to use your usual workflow (e.g. `:cn`) to go through the findings.
 
-### QtCreator
+### Qt Creator
 
 In order to use the pre-commit Analysis in QtCreator you need to add a new Kit (Teamscale does _not_ have to be the default Kit).
 Go to `Projects > Manage Kits... > Kits > Add`  
