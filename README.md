@@ -13,19 +13,19 @@ The [Teamscale](https://teamscale.com) pre-commit command line interface allows 
 
 2. Install `teamscale-cli` via pip:
 
-	```bash
-	$ pip install teamscale-cli
-	```
+    ```bash
+    $ pip install teamscale-cli
+    ```
 
-	The `teamscale-cli` executable will be installed to `~/.local/bin/teamscale-cli`. Please ensure it is on your `PATH`.
+    The `teamscale-cli` executable will be installed to `~/.local/bin/teamscale-cli`. Please ensure it is on your `PATH`.
 
 3. Copy the example configuration file [.teamscale-precommit.config](./config/.teamscale-precommit.config) to the root directory of the repository you want to analyze. Edit it and insert all the necessary data. You can find your personal access token by opening Teamscale and clicking on your Avatar in the top right corner.
 
-4. Use `teamscale-cli` as a compile or build command in your editor. See below for instructions for popular editors. Provide a file or folder within your repository as input. The general invocation looks like this:
+5. The behavior of the client can be tweaked with several arguments. Run the client with the ```-h``` argument to get the usage.
 
-	```bash
-	$ teamscale-cli [OPTIONS] CURRENTLY_OPENED_EDITOR_FILE
-	```
+    ```bash
+    $ teamscale-cli [OPTIONS] CURRENTLY_OPENED_EDITOR_FILE
+    ```
 
 ## How it works
 
@@ -102,13 +102,13 @@ This should allow you to run `:compiler teamscale` and `:make %`. Then you shoul
 ### Qt Creator
 
 In order to use the pre-commit Analysis in Qt Creator you need to add a new Kit (Teamscale does _not_ have to be the default Kit).
-Go to `Projects > Manage Kits... > Kits > Add`  
+Go to `Tools > Options > Kits > Add`  
 
 ![New Teamscale Kit](config/qtcreator_1.png)
 
 The compiler must be set to gcc as this will be used to parse the console output of the tool.
 
-Next you need to add the actual run config to each of your QtCreator projects.
+Next you need to add the actual build config to each of your QtCreator projects.
 Go to `Projects > Teamscale > Build` and remove all default `Build` and `Clean Steps` (there should be a small `x` when hovering over them).
 Add a new build configuration:
 
