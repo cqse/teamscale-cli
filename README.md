@@ -23,9 +23,9 @@ The [Teamscale](https://teamscale.com) pre-commit command line interface allows 
 
 4. Use `teamscale-cli` as a compile or build command in your editor. See below for instructions for popular editors. Provide a file or folder within your repository as input. The general invocation looks like this:
 
-```bash
-$ teamscale-cli [OPTIONS] CURRENTLY_OPENED_EDITOR_FILE
-```
+	```bash
+	$ teamscale-cli [OPTIONS] CURRENTLY_OPENED_EDITOR_FILE
+	```
 
 ## How it works
 
