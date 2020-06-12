@@ -13,9 +13,9 @@ The [Teamscale](https://teamscale.com) pre-commit command line interface allows 
 
 2. Install `teamscale-cli` via pip:
 
-```bash
-$ pip install teamscale-cli
-```
+	```bash
+	$ pip install teamscale-cli
+	```
 
 The `teamscale-cli` executable will be installed to `~/.local/bin/teamscale-cli`. Please ensure it is on your `PATH`.
 
@@ -160,4 +160,3 @@ The precommit analysis has some builtin limits whose goal is to prevent denial o
 - Precommit analysis uploads might only be done once every 5 seconds per user (can be changed on the server).
 
 These are automatically applied and cannot be disabled.
-
