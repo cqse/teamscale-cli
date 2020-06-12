@@ -29,7 +29,7 @@ The [Teamscale](https://teamscale.com) pre-commit command line interface allows 
 
 ## How it works
 
-teamscale-cli will use the path you specify on the command line to locate your .git directory. It then uploads all [local uncommitted changes known to Git](#how-does-change-detection-work) from your Git repository to the Teamscale server and project you configured in the config file. The client then waits until Teamscale has analyzed these changes, and outputs findings on `stdout` in the following format:
+`teamscale-cli` will use the path you specify on the command line to locate your .git directory. It then uploads all [local uncommitted changes known to Git](#how-does-change-detection-work) to the Teamscale server and project you configured in the config file. The client then waits until Teamscale has analyzed these changes, and outputs findings on `stdout` in the following format:
 
 ```
 Path to file:line number:Column: (warning|error): Message
