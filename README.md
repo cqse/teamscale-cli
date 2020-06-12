@@ -101,7 +101,7 @@ This should allow you to run `:compiler teamscale` and `:make %`. Then you shoul
 
 ### Qt Creator
 
-In order to use the pre-commit Analysis in QtCreator you need to add a new Kit (Teamscale does _not_ have to be the default Kit).
+In order to use the pre-commit Analysis in Qt Creator you need to add a new Kit (Teamscale does _not_ have to be the default Kit).
 Go to `Projects > Manage Kits... > Kits > Add`  
 
 ![New Teamscale Kit](config/qtcreator_1.png)
