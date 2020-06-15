@@ -117,7 +117,7 @@ Then configure it as follows:
 
 The flag `--log-to-stderr` is required as otherwise QtCreator will not recognize the findings.  
 
-You can add more than one build configuration, e.g. if you want to sometimes run the teamscale-cli with different arguments.
+You can add more than one build configuration, e.g. if you sometimes want to run the teamscale-cli with different arguments.
 
 ## How does change detection work?
 
