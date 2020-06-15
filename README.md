@@ -1,102 +1,127 @@
-# Teamscale Precommit Command Line Client [![Build Status](https://travis-ci.org/cqse/teamscale-cli.svg?branch=master)](https://travis-ci.org/cqse/teamscale-cli) [![PyPI version](https://badge.fury.io/py/teamscale-cli.svg)](https://badge.fury.io/py/teamscale-cli) [![Teamscale Project](https://img.shields.io/badge/teamscale-teamscale--cli-brightgreen.svg)](https://demo.teamscale.com/activity.html#/teamscale-cli)
-The [Teamscale](https://teamscale.com) precommit command line interface allows you to integrate precommit analysis in editors or IDEs such as VS Code, Emacs or Sublime, by providing findings in a standard error format that can be interpreted like compile time errors.
+# Teamscale Pre-Commit Command Line Client [![Build Status](https://travis-ci.org/cqse/teamscale-cli.svg?branch=master)](https://travis-ci.org/cqse/teamscale-cli) [![PyPI version](https://badge.fury.io/py/teamscale-cli.svg)](https://badge.fury.io/py/teamscale-cli) [![Teamscale Project](https://img.shields.io/badge/teamscale-teamscale--cli-brightgreen.svg)](https://demo.teamscale.com/activity.html#/teamscale-cli)
 
+The [Teamscale](https://teamscale.com) pre-commit command line interface allows you to integrate pre-commit analysis in editors or IDEs such as VS Code, Emacs, QtCreator or Sublime by providing findings in a standard error format that is interpreted and displayed like compile errors by these editors.
 
 ## Installation
 
+**This guide uses `pip` and `python`. If you prefer Python 3, you'll probably have to replace all occurrences with `pip3` and `python3`.**
+
 1. Install `libgit2` (https://libgit2.org) on all platforms except Windows
+    - On Ubuntu use `apt-get install libgit2-dev`.
     - On macOS use `brew install libgit2`.
     - Not necessary on Windows as `libgit2` is already packaged with the `pygit` dependency.
 
-2. Install this client via pip:
- ```bash
- $ pip install teamscale-cli
- ```
+2. Install `teamscale-cli` via pip:
 
-3. Copy the configuration file `config/.teamscale-precommit.config` to the root directory of the repository you want to analyze. Edit it and insert all the necessary data. You can find your personal access token by opening Teamscale and clicking on your Avatar in the top right corner.
+    ```bash
+    $ pip install teamscale-cli
+    ```
 
-4. Use this script as compile or build command in your editor or IDE. See below for more information and a couple of examples on how to accomplish this. Provide a file or folder within your repository as input. The general invocation looks like this:
+    The `teamscale-cli` executable will be installed to `~/.local/bin/teamscale-cli`. Please ensure it is on your `PATH`.
 
- ```bash
- $ teamscale-cli ANY_FILE_OR_FOLDER_IN_YOUR_REPO
- ```
+3. Copy the example configuration file [.teamscale-precommit.config](./config/.teamscale-precommit.config) to the root directory of the repository you want to analyze. Edit it and insert all the necessary data. You can find your personal access token by opening Teamscale and clicking on your Avatar in the top right corner.
 
-5. The behavior of the client can be tweaked with several arguments. Run the client with the `-h` argument to get the usage.
+4. Use `teamscale-cli` as a compile or build command in your editor. See below for instructions for
+    [sample configurations for some editors and IDEs below](#instructions-for-popular-editors).
+    Provide a file or folder within your repository as input. The general invocation looks like this:
 
-### Problems
-- If python is not finding the name ConverterMapping try uninstalling the python-configparser package and install the configparser via pip/pip3
+    ```bash
+    $ teamscale-cli [OPTIONS] CURRENTLY_OPENED_EDITOR_FILE
+    ```
 
-## How to perform precommit analysis
+## How it works
 
-When invoked, the precommit analysis client uploads the current changes from your Git repository to the Teamscale server and project you provided in the settings. The client then waits until Teamscale has analyzed these changes, and comes back with findings.
-The findings will be printed to `stdout` in a pretty standard format similar to gcc findings:
+`teamscale-cli` will use the path you specify on the command line to locate your .git directory. It then uploads all [local uncommitted changes known to Git](#how-does-change-detection-work) to the Teamscale server and project you configured in the config file. The client then waits until Teamscale has analyzed these changes, and outputs findings on `stdout` in the following format:
 
-`Path to file:line number:Column: (warning|error): Message`
+```
+Path to file:line number:Column: (warning|error): Message
+```
 
-This allows you to use the highlighting capabilities of your editors to mark the findings inline or to jump to the findings from the precommit output. For your convenience, we've provided sample configurations for some editors and IDEs.
+This allows you to use the highlighting capabilities of your editors to highlight lines with findings in the editor and to jump to the finding location from the pre-commit console output. For your convenience, we've provided [sample configurations for some editors and IDEs below](#instructions-for-popular-editors).
+
+Which findings are output is controlled by several command line options:
+
+```
+teamscale-cli CURRENTLY_OPENED_EDITOR_FILE
+```
+
+will output only pre-commit findings, i.e. findings that were added or removed due to your local changes. This includes all changes known to Git, not just the `CURRENTLY_OPENED_EDITOR_FILE`. Existing findings will not be output.
+Use this if you are only interested in the impact your local code changes will have on the findings.
+
+```
+teamscale-cli --fetch-existing-findings CURRENTLY_OPENED_EDITOR_FILE
+```
+
+will output pre-commit findings for all locally changed files plus all existing, unchanged findings in `CURRENTLY_OPENED_EDITOR_FILE`.
+Use this if you also want to have a look at existing findings in the currently opened file, e.g. to clean up old findings while you code.
+**We recommend you use this mode as you can use it to see both the existing findings in the currently opened file (regardless of whether it is changed locally or not) and the impact of your local changes before you commit them. This gives you the opportunity to look at existing findings in the files you open and clean some of them up while you work on your code.**
+
+```
+teamscale-cli --fetch-existing-findings-in-changes CURRENTLY_OPENED_EDITOR_FILE
+```
+
+will output pre-commit findings for all locally changed files plus all existing, unchanged findings in all locally changed files.
+Use this if you always want to clean up in all files where you have made changes.
+
+Run the client with the `-h` argument to see additional available options.
+
+## Instructions for Popular Editors
 
 ### Sublime
 
-Add a new *Build System* under `Tools > Build System`. Locate `config/teamscale-precommit.sublime-build` in this repo. Copy and paste the snippet and modify the arguments to fit your needs.
+Add a new *Build System* under `Tools > Build System`. Copy and paste [our example snippet](./config/teamscale-precommit.sublime-build) and modify the arguments to fit your needs.
 
 ### Xcode
 
 Add a new *Build Phase* (`New Run Script Phase`) to your project. Enter the following command as shell script in that phase (see screenshot):
 
 ```bash
-teamscale-cli ${SRCROOT} --fail-on-red-findings
+python -c 'from teamscale_precommit_client.precommit_client import run;run()' ${SRCROOT}
 ```
+
+**In Xcode you cannot use `--fetch-existing-findings` since there is unfortunately no environment variable for the currently opened editor file.
+Using this flag would give you all findings in the entire project, which is usually not helpful.**
 
 ![Configuring the Build Phase in Xcode](config/xcode_1.png)
 
-As you're on a Mac, make sure to use the correct Python version in that snippet, which might be `python3`. Also keep in mind that Xcode might run its own copy of python. You might want to explicitly specify the python executable.
-Sometimes, macOS does not find `teamscale-cli`. In that case, you can also use the following snippet:
-
-```bash
-# Make sure to point to the python for which you installed the teamscale-cli.
-python3 -c "from teamscale_precommit_client.precommit_client import run;run()" ${SRCROOT} --fail-on-red-findings
-```
-
-The option `--fail-on-red-findings` will fail your Xcode build if new RED findings were found. You might decide to drop that flag. If you've done it right, Xcode will show all findings inlined as seen on the following screenshot:
+Screenshot of findings shown in Xcode:
 
 ![Teamscale Findings in Xcode](config/xcode_2.png)
 
 ### VS Code
 
-Add a new task (`Terminal -> Configure Tasks`) and name it `Teamscale Precommit Analysis` or similar. VS Code will open a sample `tasks.json` for you to edit. Locate `config/teamscale-precommit-vscode-task.json` in this repo. Copy and paste the snippet and modify to your needs (e.g. `python` vs. `python3`).
+Add a new task (`Terminal > Configure Tasks > Create tasks.json file from template > Others`) and name it `Teamscale Pre-Commit Analysis`. VS Code will open a sample `tasks.json` for you to edit. Copy and paste [the example snippet from this repo](./config/teamscale-precommit-vscode-task.json).
 
 ### Vim
 
-Locate `config/teamscale.vim` and put in into `~/.vim/compiler`. Modify to your needs (e.g. `python` vs. `python3`).
-This should allow you to do `:compiler teamscale` and `:make %`. Then you should be able to use your usual workflow (e.g. `:cn`) to go through the findings.
+Copy [the teamscale-cli vim file](./config/teamscale.vim) to `~/.vim/compiler` and restart Vim.
+This should allow you to run `:compiler teamscale` and `:make %`. Then, you should be able to use your usual workflow (e.g. `:cn`) to go through the findings.
 
-### QTCreator
-In order to use the precommit Analysis in QTCreator you need to add a new Kit (Teamscale does **not** have to be the default one)  
-Go to `Tools` -> `Options` -> `Kits` -> `Add`
+### Qt Creator
+
+In order to use the pre-commit Analysis in Qt Creator you need to add a new Kit (Teamscale does _not_ have to be the default Kit).
+Go to `Tools > Options > Kits > Add`  
 
 ![New Teamscale Kit](config/qtcreator_1.png)
 
-The only thing important here to configure is that the compiler is gcc as this will be used to parse the output of the precommit analysis.
+The compiler must be set to gcc as this will be used to parse the console output of the tool.
 
-Next you need to add the actual build config, which has to be configured for every project. Go to `Projects` -> `Teamscale` -> `Build` and remove all default `Build` and `Clean Steps` (there should be a small x when hovering over them).
-Then, add a new build step and select `Custom Process Step`.
-Configure it as follows:
-```
-Command: python3 (or python)
-Arguments: -c "from teamscale_precommit_client.precommit_client import run;run()" --log-to-stderr %{CurrentProject:Path}
-```
+Next you need to add the actual build config to each of your QtCreator projects.
+Go to `Projects > Teamscale > Build` and remove all default `Build` and `Clean Steps` (there should be a small `x` when hovering over them).
+Add a new build configuration:
 
-![Precommit](config/qtcreator_2.png)
+![Pre-Commit](config/qtcreator_2.png)
 
-Note that the flag **--log-to-stderr** is mandatory, otherwise QTCreator will not recognize the findings.  
-The environment variable `%{CurrentProject:Path}` can be changed to `%{CurrentDocument:FilePath}` for example, which will make the precommit analysis only fetch findings for the currently opened file.  
-For other possible environment variables click on the little **A->B** button (Marked with a red box in the picture above).  
-The last parameter has to be either a folder or specific file for which the precommit analysis should be run, so here you can add as many different precommit analyses configuration as you wish.  
-If you want to see the different options of the precommit analysis itself, just run it with the `-h` flag.
+Then configure it as follows:  
 
-## More details
+* Executable: `python`
+* Command line arguments: `-c "from teamscale_precommit_client.precommit_client import run;run()" --fetch-existing-findings --log-to-stderr %{CurrentDocument:FilePath}`
 
-### How does change detection work?
+The flag `--log-to-stderr` is required as otherwise QtCreator will not recognize the findings.  
+
+You can add more than one build configuration, e.g. if you sometimes want to run the teamscale-cli with different arguments.
+
+## How does change detection work?
 
 The client detects changes by querying your Git repository for its current status. The following change types will be considered:
 
@@ -107,51 +132,16 @@ The client detects changes by querying your Git repository for its current statu
 
 New files that are not in the index will be ignored.
 
-### Which findings should be fetched?
+## Troubleshooting
 
-By default, the precommit analysis client will fetch new findings in the changes you've made as well as findings that have existed in code you have modified. You can tweak this behavior using the following flags:
-
-```
-  --exclude-findings-in-changed-code
-                        Determines whether to exclude findings in changed code
-                        (default: False)
-  --fetch-existing-findings
-                        When this option is set, existing findings in the
-                        specified file are fetched in addition to precommit
-                        findings. (default: False)
-  --fetch-existing-findings-in-changes
-                        When this option is set, existing findings in all
-                        changed files are fetched in addition to precommit
-                        findings. (default: False)
-  --fetch-all-findings
-                        When this option is set, all existing findings in the
-                        repo are fetched in addition to precommit findings.
-                        (default: False)
-```
-
-Be cautious using these flags as there might be many findings in your code base.
-
-### Other command line options
-
-```
-  --fail-on-red-findings
-                        When this option is set, the precommit client will exit
-                        with a non-zero return value whenever RED findings were
-                        among the precommit findings. (default: False)
-  --omit-links-to-findings
-                        By default, each finding includes a link to the
-                        corresponding finding in Teamscale. Setting this
-                        option omits these links. (default: False)
-  --verify
-                        Path to different certificate file.  See requests' verify
-                        parameter in http://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification
-                        Other possible values: True, False (default: True)
-```
+- If python does not find the name `ConverterMapping` try uninstalling the `python-configparser` system package and install `configparser` via pip.
 
 ## Limits
 
-The precommit analysis has some builtin limits, whose goal is to prevent denial of service of the Teamscale server:
+The precommit analysis has some builtin limits whose goal is to prevent denial of service of the Teamscale server:
 
 - Files uploaded for precommit analysis must be less than 1 MB in size.
 - At most 20 files can be uploaded for precommit analysis (can be changed on the server).
 - Precommit analysis uploads might only be done once every 5 seconds per user (can be changed on the server).
+
+These are automatically applied and cannot be disabled.
