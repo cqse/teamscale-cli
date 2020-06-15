@@ -21,7 +21,9 @@ The [Teamscale](https://teamscale.com) pre-commit command line interface allows 
 
 3. Copy the example configuration file [.teamscale-precommit.config](./config/.teamscale-precommit.config) to the root directory of the repository you want to analyze. Edit it and insert all the necessary data. You can find your personal access token by opening Teamscale and clicking on your Avatar in the top right corner.
 
-5. The behavior of the client can be tweaked with several arguments. Run the client with the `-h` argument to get the usage.
+4. Use `teamscale-cli` as a compile or build command in your editor. See below for instructions for
+    [sample configurations for some editors and IDEs below](#instructions-for-popular-editors).
+    Provide a file or folder within your repository as input. The general invocation looks like this:
 
     ```bash
     $ teamscale-cli [OPTIONS] CURRENTLY_OPENED_EDITOR_FILE
