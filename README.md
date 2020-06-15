@@ -79,6 +79,9 @@ Add a new *Build Phase* (`New Run Script Phase`) to your project. Enter the foll
 python -c 'from teamscale_precommit_client.precommit_client import run;run()' ${SRCROOT}
 ```
 
+This script uses `python` to execute the Teamscale precommit command line interface on the source of the project's Git repository (`SCROOT`). Make sure to use the correct Python version in that snippet, which might be `python3`. 
+Also, keep in mind that `python` by default might point to Xcode's own copy of python. Hence, you might want to explicitly specify the python executable's path instead (e.g. `/usr/bin/python`).
+
 **In Xcode you cannot use `--fetch-existing-findings` since there is unfortunately no environment variable for the currently opened editor file.
 Using this flag would give you all findings in the entire project, which is usually not helpful.**
 
@@ -87,6 +90,8 @@ Using this flag would give you all findings in the entire project, which is usua
 Screenshot of findings shown in Xcode:
 
 ![Teamscale Findings in Xcode](config/xcode_2.png)
+
+As shown on the previous screenshot, Xcode also provides links to the corresponding finding in Teamscale.
 
 ### VS Code
 
