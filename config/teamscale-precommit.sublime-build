@@ -1,4 +1,4 @@
 {
-	"cmd": ["python", "-c", "from teamscale_precommit_client.precommit_client import run;run()", "$file"],
+	"cmd": ["python", "-c", "from teamscale_precommit_client.precommit_client import run;run()", "--fetch-existing-findings", "$file"],
 	"file_regex": "^([^:]*):([0-9]+):([0-9]+): (?:error|warning): (.*)$"
 }

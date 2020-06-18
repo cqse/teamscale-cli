@@ -11,7 +11,7 @@ let current_compiler = "teamscale"
 let s:cpo_save = &cpo
 set cpo-=C
 
-setlocal makeprg=python\ -c\ \"from\ teamscale_precommit_client.precommit_client\ import\ run;run()\"
+setlocal makeprg=python\ -c\ \"from\ teamscale_precommit_client.precommit_client\ import\ run;run()\"\ --fetch-existing-findings
 
 setlocal errorformat=
       \%*[^\"]\"%f\"%*\\D%l:%c:\ %m,

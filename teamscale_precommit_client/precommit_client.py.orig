@@ -204,16 +204,20 @@ class PrecommitClient:
         if len(findings) == 0:
             return ['> No findings.']
 
+<<<<<<< HEAD
         findings_without_path_prefix = list(
             map(lambda finding: self._remove_path_prefix_from_finding(finding), findings))
         sorted_findings = sorted(findings_without_path_prefix)
+=======
+        sorted_findings = sorted(findings)
         return [self._format_message(finding) for finding in sorted_findings]
+>>>>>>> master
 
     def _format_message(self, finding):
         location = os.path.join(self.repository_path, finding.uniformPath)
         severity = self._get_finding_severity_message(finding=finding)
         link = '%s&t=%s' % (self.teamscale_client.get_finding_url(finding),
-                            self.teamscale_client._get_timestamp_parameter(timestamp=None))
+                self.teamscale_client._get_timestamp_parameter(timestamp=None))
 
         message = finding.message
         if not self.omit_links_to_findings:
@@ -221,14 +225,27 @@ class PrecommitClient:
 
         message = '%s:%i:1: %s: %s' % (location, finding.startLine, severity, message)
         if self.omit_links_to_findings:
-            return message
-
-        return '%s | (%s)' % (message, link)
+<<<<<<< HEAD
+            return ['%s:%i:1: %s: %s' % (os.path.join(self.repository_path, finding.uniformPath), finding.startLine,
+                                         self._get_finding_severity_message(finding=finding), finding.message) for
+                    finding in sorted_findings]
+        else:
+            return ['%s:%i:1: %s: %s (%s)' % (
+                os.path.join(self.repository_path, finding.uniformPath), finding.startLine,
+                self._get_finding_severity_message(finding=finding), finding.message, '%s&t=%s' % (
+                    self.teamscale_client.get_finding_url(finding),
+                    self.teamscale_client._get_timestamp_parameter(timestamp=None))) for finding in sorted_findings]
 
     def _remove_path_prefix_from_finding(self, finding):
         finding_without_path_prefix = copy.deepcopy(finding)
         finding_without_path_prefix.uniformPath = self._remove_path_prefix(finding_without_path_prefix.uniformPath)
         return finding_without_path_prefix
+=======
+            return message
+
+        return '%s | (%s)' % (message, link)
+
+>>>>>>> master
 
     @staticmethod
     def _get_finding_severity_message(finding):
