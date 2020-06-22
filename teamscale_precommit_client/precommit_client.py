@@ -272,7 +272,8 @@ def _parse_args():
                         help='When this option is set, any finding will be logged to stderr instead of stdout: '
                              '(default: False)')
     parser.add_argument('--path-prefix', metavar='PATH_PREFIX', type=str,
-                        help='Path prefix on Teamscale as configured with "Prepend repository identifier" or "Path prefix transformation"',
+                        help='Path prefix on Teamscale as configured with "Prepend repository identifier" or '
+                             '"Path prefix transformation". Please use "/" to separate folders.',
                         default=DEFAULT_PATH_PREFIX)
     return parser.parse_args()
 
