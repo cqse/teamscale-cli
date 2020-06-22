@@ -110,20 +110,20 @@ class PrecommitClient:
         self.teamscale_client.branch = self.current_branch
 
         print("Uploading changes on branch '%s' in '%s'..." % (self.current_branch, self.repository_path))
-        changed_files_with_path_prefix = self.apply_path_prefix_to_changed_files()
-        deleted_files_with_path_prefix = self.apply_path_prefix_to_deleted_files()
+        changed_files_with_path_prefix = self._apply_path_prefix_to_changed_files()
+        deleted_files_with_path_prefix = self._apply_path_prefix_to_deleted_files()
         precommit_data = PreCommitUploadData(uniformPathToContentMap=changed_files_with_path_prefix,
                                              deletedUniformPaths=deleted_files_with_path_prefix)
         self.teamscale_client.upload_files_for_precommit_analysis(
             datetime.datetime.fromtimestamp(self.parent_commit_timestamp), precommit_data)
 
-    def apply_path_prefix_to_changed_files(self):
+    def _apply_path_prefix_to_changed_files(self):
         map_with_prefixes = {}
         for key in self.changed_files.keys():
             map_with_prefixes[self.path_prefix + key] = self.changed_files[key]
         return map_with_prefixes
 
-    def apply_path_prefix_to_deleted_files(self):
+    def _apply_path_prefix_to_deleted_files(self):
         return list(map(lambda path: self.path_prefix + path, self.deleted_files))
 
     def _wait_and_get_precommit_result(self):
