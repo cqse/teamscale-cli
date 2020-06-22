@@ -1,8 +1,8 @@
-import os
-
-import responses
 import re
 import sys
+from io import StringIO
+
+import responses
 
 # The mock package is only available from Python 3.3 onwards. Thank you, Python.
 if sys.version_info >= (3, 3):
@@ -22,7 +22,8 @@ USERNAME = 'johndoe'
 ACCESS_TOKEN = 'secret'
 REPO_PATH = 'path/to/repo/'
 ANALYZED_FILE_NAME = 'file.ext'
-ANALYZED_FILE = REPO_PATH + ANALYZED_FILE_NAME
+ANALYZED_FILE_PATH = REPO_PATH + ANALYZED_FILE_NAME
+DELETED_FILE_NAME = 'deletedFile.ext'
 CURRENT_BRANCH = 'my_feature_branch'
 
 
@@ -136,13 +137,34 @@ class PrecommitClientTest(TestCase):
 
     @responses.activate
     def test_adding_path_prefix(self):
-        path_prefix = 'prefix/'
+        path_prefix = 'prefix'
         self.precommit_client = self._get_precommit_client(self._get_changed_file(),
-                                                           self._get_no_deleted_files(), path_prefix=path_prefix)
-        self.mock_precommit_findings_churn(added_findings=[1], path_prefix=path_prefix)
+                                                           [DELETED_FILE_NAME], path_prefix=path_prefix)
+        self.mock_precommit_findings_churn(added_findings=[1], path_prefix=path_prefix + '/')
         self.precommit_client.run()
 
-        self.assert_findings_paths(self.precommit_client.added_findings, [path_prefix + ANALYZED_FILE_NAME])
+        changed_file_path_with_prefix = path_prefix + '/' + ANALYZED_FILE_NAME
+        deleted_file_path_with_prefix = path_prefix + '/' + DELETED_FILE_NAME
+        precommit_request = next(call.request for call in responses.calls if call.request.method == 'PUT')
+
+        # Check if the path prefix was applied and sent correctly in the request's body
+        self.assertIn(changed_file_path_with_prefix, precommit_request.body)
+        self.assertIn(deleted_file_path_with_prefix, precommit_request.body)
+
+    @responses.activate
+    def test_stripping_path_prefix(self):
+        path_prefix = 'prefix'
+        self.precommit_client = self._get_precommit_client(self._get_changed_file(),
+                                                           [DELETED_FILE_NAME], path_prefix=path_prefix)
+        self.mock_precommit_findings_churn(added_findings=[1], path_prefix=path_prefix + '/')
+
+        captured_output = StringIO()
+        sys.stdout = captured_output
+
+        self.precommit_client.run()
+
+        # Check if the path prefix was applied and sent correctly in the request's body
+        self.assertNotIn(path_prefix, captured_output.getvalue())
 
     @staticmethod
     def mock_precommit_findings_churn(added_findings=None, findings_in_changed_code=None, removed_findings=None,
@@ -185,7 +207,7 @@ class PrecommitClientTest(TestCase):
                       content_type="application/json", body='{"apiVersion": 6}')
         precommit_client = PrecommitClient(PrecommitClientTest._get_precommit_client_config(),
                                            repository_path=REPO_PATH, path_prefix=path_prefix,
-                                           analyzed_file=ANALYZED_FILE, verify=False,
+                                           analyzed_file=ANALYZED_FILE_PATH, verify=False,
                                            omit_links_to_findings=True, fetch_existing_findings=fetch_existing_findings,
                                            fetch_existing_findings_in_changes=fetch_existing_findings_in_changes)
         precommit_client._calculate_modifications = Mock()
