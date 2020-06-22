@@ -102,25 +102,29 @@ class PrecommitClient:
         print('')
         self._wait_and_get_precommit_result()
 
-    def remove_files_not_in_project_path(self, uniform_path_content_map):
-        project_files_map = {}
-        for key in uniform_path_content_map.keys():
-            if key.startswith(self.project_subpath):
-                project_files_map[key] = uniform_path_content_map[key]
-        return project_files_map
-
     def _upload_precommit_data(self):
         """Uploads the currently changed files for precommit analysis."""
         self.teamscale_client.branch = self.current_branch
 
         print("Uploading changes on branch '%s' in '%s'..." % (self.current_branch, self.repository_path))
 
-        changed_files_in_project = self.remove_files_not_in_project_path(self.changed_files)
-        deleted_files_in_project = list(filter(lambda path: path.startswith(self.project_subpath), self.deleted_files))
+        changed_files_in_project = self._remove_changed_files_not_in_project_path(self.changed_files)
+        deleted_files_in_project = self._remove_deleted_files_not_in_project_path(self.deleted_files)
+
         precommit_data = PreCommitUploadData(uniformPathToContentMap=changed_files_in_project,
                                              deletedUniformPaths=deleted_files_in_project)
         self.teamscale_client.upload_files_for_precommit_analysis(
             datetime.datetime.fromtimestamp(self.parent_commit_timestamp), precommit_data)
+
+    def _remove_changed_files_not_in_project_path(self, uniform_path_content_map):
+        project_files_map = {}
+        for key in uniform_path_content_map.keys():
+            if key.startswith(self.project_subpath):
+                project_files_map[key] = uniform_path_content_map[key]
+        return project_files_map
+
+    def _remove_deleted_files_not_in_project_path(self, deleted_files):
+        return list(filter(lambda path: path.startswith(self.project_subpath), deleted_files))
 
     def _wait_and_get_precommit_result(self):
         """Gets the current precommit results. Waits synchronously until server is ready. """
@@ -140,11 +144,13 @@ class PrecommitClient:
         self._print('', log_to_stderr)
         self._print(message, log_to_stderr)
 
-        findings_in_project = list(
-            filter(lambda finding: finding.uniformPath.startswith(self.project_subpath), findings))  # TDODO rename
+        findings_in_project = self._remove_findings_not_in_project_path(findings)
 
         for formatted_finding in self._format_findings(findings_in_project, branch):
             self._print(formatted_finding, log_to_stderr)
+
+    def _remove_findings_not_in_project_path(self, findings):
+        return list(filter(lambda finding: finding.uniformPath.startswith(self.project_subpath), findings))
 
     @staticmethod
     def _print(message, print_to_err=False):
@@ -206,7 +212,7 @@ class PrecommitClient:
         location = os.path.join(self.repository_path, finding.uniformPath)
         severity = self._get_finding_severity_message(finding=finding)
         link = '%s&t=%s' % (self.teamscale_client.get_finding_url(finding),
-                self.teamscale_client._get_timestamp_parameter(timestamp=None))
+                            self.teamscale_client._get_timestamp_parameter(timestamp=None))
 
         message = finding.message
         if not self.omit_links_to_findings:
@@ -217,7 +223,6 @@ class PrecommitClient:
             return message
 
         return '%s | (%s)' % (message, link)
-
 
     @staticmethod
     def _get_finding_severity_message(finding):
@@ -262,7 +267,7 @@ def _parse_args():
                              '(default: False)')
     parser.add_argument('--project-subpath', metavar='project-subpath', type=str, default='',
                         help='Project path relative to the git repository. '
-                             'Pre-commit analysis will only be done for files under this path.')
+                             'Pre-commit analysis will only be performed for files under this path.')
     return parser.parse_args()
 
 
