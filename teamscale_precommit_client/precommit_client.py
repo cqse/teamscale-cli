@@ -18,6 +18,7 @@ from teamscale_precommit_client.git_utils import get_repo_root_from_file_in_repo
 
 # Filename of the precommit configuration. The client expects this config file at the root of the repository.
 PRECOMMIT_CONFIG_FILENAME = '.teamscale-precommit.config'
+DEFAULT_PROJECT_SUBPATH = ''
 
 
 class PrecommitClient:
@@ -265,7 +266,7 @@ def _parse_args():
     parser.add_argument('--log-to-stderr', dest='log_to_stderr', action='store_true',
                         help='When this option is set, any finding will be logged to stderr instead of stdout: '
                              '(default: False)')
-    parser.add_argument('--project-subpath', metavar='project-subpath', type=str, default='',
+    parser.add_argument('--project-subpath', metavar='project-subpath', type=str, default=DEFAULT_PROJECT_SUBPATH,
                         help='Project path relative to the git repository. '
                              'Pre-commit analysis will only be performed for files under this path.')
     return parser.parse_args()

@@ -1,6 +1,11 @@
-import responses
+import os
 import re
 import sys
+from io import StringIO
+
+import responses
+
+from teamscale_precommit_client.precommit_client import DEFAULT_PROJECT_SUBPATH
 
 # The mock package is only available from Python 3.3 onwards. Thank you, Python.
 if sys.version_info >= (3, 3):
@@ -19,7 +24,9 @@ SUCCESS = 'success'
 USERNAME = 'johndoe'
 ACCESS_TOKEN = 'secret'
 REPO_PATH = 'path/to/repo/'
-ANALYZED_FILE = REPO_PATH + 'file.ext'
+ANALYZED_FILE_NAME = 'file.ext'
+ANALYZED_FILE_PATH = REPO_PATH + ANALYZED_FILE_NAME
+DELETED_FILE_NAME = 'deletedFile.ext'
 CURRENT_BRANCH = 'my_feature_branch'
 
 
@@ -131,12 +138,56 @@ class PrecommitClientTest(TestCase):
         self.assert_findings_ids(self.precommit_client.findings_in_changed_code, [])
         self.assert_findings_ids(self.precommit_client.existing_findings, [4, 5, 6, 7])
 
+    @responses.activate
+    def test_only_upload_files_in_project_subpath(self):
+        project_subpath = 'project'
+        path_outside_project = 'another_path'
+
+        changed_file_in_project = os.path.join(project_subpath, ANALYZED_FILE_NAME)
+        changed_file_not_in_project = os.path.join(path_outside_project, ANALYZED_FILE_NAME)
+        deleted_file_in_project = os.path.join(project_subpath, DELETED_FILE_NAME)
+        deleted_file_not_in_project = os.path.join(path_outside_project, DELETED_FILE_NAME)
+
+        self.precommit_client = self._get_precommit_client(
+            {changed_file_in_project: '',
+             changed_file_not_in_project: ''},
+            [deleted_file_in_project, deleted_file_not_in_project],
+            project_subpath=project_subpath)
+        self.mock_precommit_findings_churn()
+
+        self.precommit_client.run()
+
+        precommit_request = next(call.request for call in responses.calls if call.request.method == 'PUT')
+
+        self.assertIn(changed_file_in_project, precommit_request.body)
+        self.assertNotIn(changed_file_not_in_project, precommit_request.body)
+        self.assertIn(deleted_file_in_project, precommit_request.body)
+        self.assertNotIn(deleted_file_not_in_project, precommit_request.body)
+
+    @responses.activate
+    def test_only_print_findings_in_project_subpath(self):
+        project_subpath = 'project'
+
+        self.precommit_client = self._get_precommit_client(self._get_no_changed_files(), self._get_no_deleted_files(),
+                                                           project_subpath=project_subpath, fetch_all_findings=True)
+        # The mocked finding does not have the project sub-path
+        self.mock_existing_findings(CURRENT_BRANCH, [1])
+
+        captured_output = StringIO()
+        sys.stdout = captured_output
+
+        self.precommit_client.run()
+
+        # We only mocked one finding which is not located under the project sub-path,
+        # so we expect it to be removed in the output
+        self.assertNotIn(ANALYZED_FILE_NAME, captured_output.getvalue())
+
     @staticmethod
     def mock_precommit_findings_churn(added_findings=None, findings_in_changed_code=None, removed_findings=None):
         """Mocks returning the findings churn for the given added, removed, and findings in changed code.
         Findings can be provided as list of integers each of which represents a finding instance."""
-        precommit_response = to_json(PrecommitClientTest._get_findings_churn(added_findings, findings_in_changed_code,
-                                                                             removed_findings))
+        precommit_response = to_json(
+            PrecommitClientTest._get_findings_churn(added_findings, findings_in_changed_code, removed_findings))
         responses.add(responses.PUT, PrecommitClientTest.get_project_service_mock('pre-commit'), body=SUCCESS,
                       status=200)
         responses.add(responses.GET, PrecommitClientTest.get_project_service_mock('pre-commit'),
@@ -162,14 +213,17 @@ class PrecommitClientTest(TestCase):
         return re.compile(r'%s/p/%s/%s/.*%s.*' % (URL, PROJECT, service_id, branch))
 
     @staticmethod
-    def _get_precommit_client(changed_files, deleted_files, fetch_existing_findings=False,
-                              fetch_existing_findings_in_changes=False):
+    def _get_precommit_client(changed_files, deleted_files, project_subpath=DEFAULT_PROJECT_SUBPATH,
+                              fetch_existing_findings=False, fetch_existing_findings_in_changes=False,
+                              fetch_all_findings=False):
         """Gets a precommit client some of whose methods are mocked out for testing."""
         responses.add(responses.GET, PrecommitClientTest.get_global_service_mock('service-api-info'), status=200,
                       content_type="application/json", body='{"apiVersion": 6}')
         precommit_client = PrecommitClient(PrecommitClientTest._get_precommit_client_config(),
-                                           repository_path=REPO_PATH, analyzed_file=ANALYZED_FILE, verify=False,
-                                           omit_links_to_findings=True, fetch_existing_findings=fetch_existing_findings,
+                                           repository_path=REPO_PATH, project_subpath=project_subpath,
+                                           analyzed_file=ANALYZED_FILE_NAME, verify=False, omit_links_to_findings=True,
+                                           fetch_existing_findings=fetch_existing_findings,
+                                           fetch_all_findings=fetch_all_findings,
                                            fetch_existing_findings_in_changes=fetch_existing_findings_in_changes)
         precommit_client._calculate_modifications = Mock()
         precommit_client.current_branch = CURRENT_BRANCH
@@ -195,7 +249,7 @@ class PrecommitClientTest(TestCase):
     @staticmethod
     def _get_changed_file():
         """Helper that returns a single changed path and content."""
-        return {ANALYZED_FILE: 'def foo():\n  pass'}
+        return {ANALYZED_FILE_NAME: 'def foo():\n  pass'}
 
     @staticmethod
     def _get_no_deleted_files():
@@ -219,7 +273,7 @@ class PrecommitClientTest(TestCase):
         for finding_number in findings_number_list:
             findings_dict = {'id': str(finding_number), 'typeId': 'id%i' % finding_number,
                              'message': 'message%i' % finding_number, 'assessment': 'RED',
-                             'location': {'uniformPath': ANALYZED_FILE, 'rawStartLine': finding_number}}
+                             'location': {'uniformPath': ANALYZED_FILE_NAME, 'rawStartLine': finding_number}}
             findings_dicts.append(findings_dict)
         return findings_dicts
 
