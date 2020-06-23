@@ -13,6 +13,7 @@ else:
 from unittest import TestCase
 from teamscale_client.teamscale_client_config import TeamscaleClientConfig
 from teamscale_precommit_client import PrecommitClient
+from teamscale_precommit_client.precommit_client import DEFAULT_PATH_PREFIX
 from teamscale_client.utils import to_json
 
 URL = 'http://localhost:8080'
@@ -168,7 +169,7 @@ class PrecommitClientTest(TestCase):
 
     @staticmethod
     def mock_precommit_findings_churn(added_findings=None, findings_in_changed_code=None, removed_findings=None,
-                                      path_prefix=''):
+                                      path_prefix=DEFAULT_PATH_PREFIX):
         """Mocks returning the findings churn for the given added, removed, and findings in changed code.
         Findings can be provided as list of integers each of which represents a finding instance."""
         precommit_response = to_json(
@@ -180,7 +181,7 @@ class PrecommitClientTest(TestCase):
                       body=precommit_response, status=200, content_type="application/json", )
 
     @staticmethod
-    def mock_existing_findings(branch, existing_findings=None, path_prefix=''):
+    def mock_existing_findings(branch, existing_findings=None, path_prefix=DEFAULT_PATH_PREFIX):
         """Mocks returning the given existing findings for the provided branch.
         Findings can be provided as list of integers each of which represents a finding instance."""
         existing_findings_from_current_branch = to_json(
@@ -200,7 +201,8 @@ class PrecommitClientTest(TestCase):
         return re.compile(r'%s/p/%s/%s/.*%s.*' % (URL, PROJECT, service_id, branch))
 
     @staticmethod
-    def _get_precommit_client(changed_files, deleted_files, path_prefix='', fetch_existing_findings=False,
+    def _get_precommit_client(changed_files, deleted_files, path_prefix=DEFAULT_PATH_PREFIX,
+                              fetch_existing_findings=False,
                               fetch_existing_findings_in_changes=False):
         """Gets a precommit client some of whose methods are mocked out for testing."""
         responses.add(responses.GET, PrecommitClientTest.get_global_service_mock('service-api-info'), status=200,
