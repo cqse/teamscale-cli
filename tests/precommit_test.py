@@ -221,7 +221,7 @@ class PrecommitClientTest(TestCase):
                       content_type="application/json", body='{"apiVersion": 6}')
         precommit_client = PrecommitClient(PrecommitClientTest._get_precommit_client_config(),
                                            repository_path=REPO_PATH, project_subpath=project_subpath,
-                                           analyzed_file=ANALYZED_FILE_NAME, verify=False, omit_links_to_findings=True,
+                                           analyzed_file=ANALYZED_FILE_PATH, verify=False, omit_links_to_findings=True,
                                            fetch_existing_findings=fetch_existing_findings,
                                            fetch_all_findings=fetch_all_findings,
                                            fetch_existing_findings_in_changes=fetch_existing_findings_in_changes)
