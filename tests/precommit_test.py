@@ -144,14 +144,14 @@ class PrecommitClientTest(TestCase):
         path_outside_project = 'another_path'
 
         changed_file_in_project = os.path.join(project_subpath, ANALYZED_FILE_NAME)
-        changed_file_not_in_project = os.path.join(path_outside_project, ANALYZED_FILE_NAME)
+        changed_file_outside_project = os.path.join(path_outside_project, ANALYZED_FILE_NAME)
         deleted_file_in_project = os.path.join(project_subpath, DELETED_FILE_NAME)
-        deleted_file_not_in_project = os.path.join(path_outside_project, DELETED_FILE_NAME)
+        deleted_file_outside_project = os.path.join(path_outside_project, DELETED_FILE_NAME)
 
         self.precommit_client = self._get_precommit_client(
             {changed_file_in_project: '',
-             changed_file_not_in_project: ''},
-            [deleted_file_in_project, deleted_file_not_in_project],
+             changed_file_outside_project: ''},
+            [deleted_file_in_project, deleted_file_outside_project],
             project_subpath=project_subpath)
         self.mock_precommit_findings_churn()
 
@@ -160,9 +160,9 @@ class PrecommitClientTest(TestCase):
         precommit_request = next(call.request for call in responses.calls if call.request.method == 'PUT')
 
         self.assertIn(changed_file_in_project, precommit_request.body)
-        self.assertNotIn(changed_file_not_in_project, precommit_request.body)
+        self.assertNotIn(changed_file_outside_project, precommit_request.body)
         self.assertIn(deleted_file_in_project, precommit_request.body)
-        self.assertNotIn(deleted_file_not_in_project, precommit_request.body)
+        self.assertNotIn(deleted_file_outside_project, precommit_request.body)
 
     @responses.activate
     def test_only_print_findings_in_project_subpath(self):

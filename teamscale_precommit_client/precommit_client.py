@@ -109,22 +109,22 @@ class PrecommitClient:
 
         print("Uploading changes on branch '%s' in '%s'..." % (self.current_branch, self.repository_path))
 
-        changed_files_in_project = self._remove_changed_files_not_in_project_path(self.changed_files)
-        deleted_files_in_project = self._remove_deleted_files_not_in_project_path(self.deleted_files)
+        changed_files_in_project = self._remove_changed_files_outside_project_subpath(self.changed_files)
+        deleted_files_in_project = self._remove_deleted_files_outside_project_subpath(self.deleted_files)
 
         precommit_data = PreCommitUploadData(uniformPathToContentMap=changed_files_in_project,
                                              deletedUniformPaths=deleted_files_in_project)
         self.teamscale_client.upload_files_for_precommit_analysis(
             datetime.datetime.fromtimestamp(self.parent_commit_timestamp), precommit_data)
 
-    def _remove_changed_files_not_in_project_path(self, uniform_path_content_map):
+    def _remove_changed_files_outside_project_subpath(self, uniform_path_content_map):
         project_files_map = {}
         for key in uniform_path_content_map.keys():
             if key.startswith(self.project_subpath):
                 project_files_map[key] = uniform_path_content_map[key]
         return project_files_map
 
-    def _remove_deleted_files_not_in_project_path(self, deleted_files):
+    def _remove_deleted_files_outside_project_subpath(self, deleted_files):
         return list(filter(lambda path: path.startswith(self.project_subpath), deleted_files))
 
     def _wait_and_get_precommit_result(self):
@@ -145,12 +145,12 @@ class PrecommitClient:
         self._print('', log_to_stderr)
         self._print(message, log_to_stderr)
 
-        findings_in_project = self._remove_findings_not_in_project_path(findings)
+        findings_in_project = self._remove_findings_outside_project_subpath(findings)
 
         for formatted_finding in self._format_findings(findings_in_project, branch):
             self._print(formatted_finding, log_to_stderr)
 
-    def _remove_findings_not_in_project_path(self, findings):
+    def _remove_findings_outside_project_subpath(self, findings):
         return list(filter(lambda finding: finding.uniformPath.startswith(self.project_subpath), findings))
 
     @staticmethod
