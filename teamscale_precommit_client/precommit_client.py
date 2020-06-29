@@ -135,11 +135,6 @@ class PrecommitClient:
         """Returns the precommit branch of the current user."""
         return '__precommit__%s' % self.teamscale_client.username
 
-    def _remove_path_prefix(self, path):
-        if path.startswith(self.path_prefix):
-            return path[len(self.path_prefix):]
-        return path
-
     def _print_findings(self, message, findings, branch):
         """Print the specified list of findings for the specified branch, in a way most text editors understand. """
         # Only log to stderr if there are findings
@@ -229,6 +224,11 @@ class PrecommitClient:
         finding_without_path_prefix = copy.deepcopy(finding)
         finding_without_path_prefix.uniformPath = self._remove_path_prefix(finding_without_path_prefix.uniformPath)
         return finding_without_path_prefix
+
+    def _remove_path_prefix(self, path):
+        if path.startswith(self.path_prefix):
+            return path[len(self.path_prefix):]
+        return path
 
     @staticmethod
     def _get_finding_severity_message(finding):
