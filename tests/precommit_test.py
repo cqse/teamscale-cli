@@ -258,6 +258,7 @@ class PrecommitClientTest(TestCase):
                                            repository_path=REPO_PATH, path_prefix=path_prefix,
                                            project_subpath=project_subpath, analyzed_file=ANALYZED_FILE_PATH,
                                            verify=False, omit_links_to_findings=True,
+                                           fetch_all_findings=fetch_all_findings,
                                            fetch_existing_findings=fetch_existing_findings,
                                            fetch_existing_findings_in_changes=fetch_existing_findings_in_changes)
         precommit_client._calculate_modifications = Mock()
