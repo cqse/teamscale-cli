@@ -1,8 +1,11 @@
+import os
 import re
 import sys
 from io import StringIO
 
 import responses
+
+from teamscale_precommit_client.precommit_client import DEFAULT_PROJECT_SUBPATH
 
 # The mock package is only available from Python 3.3 onwards. Thank you, Python.
 if sys.version_info >= (3, 3):
@@ -137,6 +140,50 @@ class PrecommitClientTest(TestCase):
         self.assert_findings_ids(self.precommit_client.existing_findings, [4, 5, 6, 7])
 
     @responses.activate
+    def test_only_upload_files_in_project_subpath(self):
+        project_subpath = 'project'
+        path_outside_project = 'another_path'
+
+        changed_file_in_project = os.path.join(project_subpath, ANALYZED_FILE_NAME)
+        changed_file_outside_project = os.path.join(path_outside_project, ANALYZED_FILE_NAME)
+        deleted_file_in_project = os.path.join(project_subpath, DELETED_FILE_NAME)
+        deleted_file_outside_project = os.path.join(path_outside_project, DELETED_FILE_NAME)
+
+        self.precommit_client = self._get_precommit_client(
+            {changed_file_in_project: '',
+             changed_file_outside_project: ''},
+            [deleted_file_in_project, deleted_file_outside_project],
+            project_subpath=project_subpath)
+        self.mock_precommit_findings_churn()
+
+        self.precommit_client.run()
+
+        precommit_request = next(call.request for call in responses.calls if call.request.method == 'PUT')
+
+        self.assertIn(changed_file_in_project, precommit_request.body)
+        self.assertNotIn(changed_file_outside_project, precommit_request.body)
+        self.assertIn(deleted_file_in_project, precommit_request.body)
+        self.assertNotIn(deleted_file_outside_project, precommit_request.body)
+
+    @responses.activate
+    def test_only_print_findings_in_project_subpath(self):
+        project_subpath = 'project'
+
+        self.precommit_client = self._get_precommit_client(self._get_no_changed_files(), self._get_no_deleted_files(),
+                                                           project_subpath=project_subpath, fetch_all_findings=True)
+        # The mocked finding does not have the project sub-path
+        self.mock_existing_findings(CURRENT_BRANCH, [1])
+
+        captured_output = StringIO()
+        sys.stdout = captured_output
+
+        self.precommit_client.run()
+
+        # We only mocked one finding which is not located under the project sub-path,
+        # so we expect it to be removed in the output
+        self.assertNotIn(ANALYZED_FILE_NAME, captured_output.getvalue())
+
+    @responses.activate
     def test_adding_path_prefix(self):
         path_prefix = 'prefix'
         self.precommit_client = self._get_precommit_client(self._get_changed_file(),
@@ -202,15 +249,17 @@ class PrecommitClientTest(TestCase):
 
     @staticmethod
     def _get_precommit_client(changed_files, deleted_files, path_prefix=DEFAULT_PATH_PREFIX,
-                              fetch_existing_findings=False,
-                              fetch_existing_findings_in_changes=False):
+                              project_subpath=DEFAULT_PROJECT_SUBPATH, fetch_existing_findings=False,
+                              fetch_existing_findings_in_changes=False, fetch_all_findings=False):
         """Gets a precommit client some of whose methods are mocked out for testing."""
         responses.add(responses.GET, PrecommitClientTest.get_global_service_mock('service-api-info'), status=200,
                       content_type="application/json", body='{"apiVersion": 6}')
         precommit_client = PrecommitClient(PrecommitClientTest._get_precommit_client_config(),
                                            repository_path=REPO_PATH, path_prefix=path_prefix,
-                                           analyzed_file=ANALYZED_FILE_PATH, verify=False,
-                                           omit_links_to_findings=True, fetch_existing_findings=fetch_existing_findings,
+                                           project_subpath=project_subpath, analyzed_file=ANALYZED_FILE_PATH,
+                                           verify=False, omit_links_to_findings=True,
+                                           fetch_all_findings=fetch_all_findings,
+                                           fetch_existing_findings=fetch_existing_findings,
                                            fetch_existing_findings_in_changes=fetch_existing_findings_in_changes)
         precommit_client._calculate_modifications = Mock()
         precommit_client.current_branch = CURRENT_BRANCH
