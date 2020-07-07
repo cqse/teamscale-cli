@@ -1,6 +1,8 @@
-import responses
 import re
 import sys
+from io import StringIO
+
+import responses
 
 # The mock package is only available from Python 3.3 onwards. Thank you, Python.
 if sys.version_info >= (3, 3):
@@ -11,6 +13,7 @@ else:
 from unittest import TestCase
 from teamscale_client.teamscale_client_config import TeamscaleClientConfig
 from teamscale_precommit_client import PrecommitClient
+from teamscale_precommit_client.precommit_client import DEFAULT_PATH_PREFIX
 from teamscale_client.utils import to_json
 
 URL = 'http://localhost:8080'
@@ -19,7 +22,9 @@ SUCCESS = 'success'
 USERNAME = 'johndoe'
 ACCESS_TOKEN = 'secret'
 REPO_PATH = 'path/to/repo/'
-ANALYZED_FILE = REPO_PATH + 'file.ext'
+ANALYZED_FILE_NAME = 'file.ext'
+ANALYZED_FILE_PATH = REPO_PATH + ANALYZED_FILE_NAME
+DELETED_FILE_NAME = 'deletedFile.ext'
 CURRENT_BRANCH = 'my_feature_branch'
 
 
@@ -131,22 +136,56 @@ class PrecommitClientTest(TestCase):
         self.assert_findings_ids(self.precommit_client.findings_in_changed_code, [])
         self.assert_findings_ids(self.precommit_client.existing_findings, [4, 5, 6, 7])
 
+    @responses.activate
+    def test_adding_path_prefix(self):
+        path_prefix = 'prefix'
+        self.precommit_client = self._get_precommit_client(self._get_changed_file(),
+                                                           [DELETED_FILE_NAME], path_prefix=path_prefix)
+        self.mock_precommit_findings_churn(added_findings=[1], path_prefix=path_prefix + '/')
+        self.precommit_client.run()
+
+        changed_file_path_with_prefix = path_prefix + '/' + ANALYZED_FILE_NAME
+        deleted_file_path_with_prefix = path_prefix + '/' + DELETED_FILE_NAME
+        precommit_request = next(call.request for call in responses.calls if call.request.method == 'PUT')
+
+        # Check if the path prefix was applied and sent correctly in the request's body
+        self.assertIn(changed_file_path_with_prefix, precommit_request.body)
+        self.assertIn(deleted_file_path_with_prefix, precommit_request.body)
+
+    @responses.activate
+    def test_stripping_path_prefix(self):
+        path_prefix = 'prefix'
+        self.precommit_client = self._get_precommit_client(self._get_changed_file(),
+                                                           [DELETED_FILE_NAME], path_prefix=path_prefix)
+        self.mock_precommit_findings_churn(added_findings=[1], path_prefix=path_prefix + '/')
+
+        captured_output = StringIO()
+        sys.stdout = captured_output
+
+        self.precommit_client.run()
+
+        # Check if the path prefix was applied and sent correctly in the request's body
+        self.assertNotIn(path_prefix, captured_output.getvalue())
+
     @staticmethod
-    def mock_precommit_findings_churn(added_findings=None, findings_in_changed_code=None, removed_findings=None):
+    def mock_precommit_findings_churn(added_findings=None, findings_in_changed_code=None, removed_findings=None,
+                                      path_prefix=DEFAULT_PATH_PREFIX):
         """Mocks returning the findings churn for the given added, removed, and findings in changed code.
         Findings can be provided as list of integers each of which represents a finding instance."""
-        precommit_response = to_json(PrecommitClientTest._get_findings_churn(added_findings, findings_in_changed_code,
-                                                                             removed_findings))
+        precommit_response = to_json(
+            PrecommitClientTest._get_findings_churn(path_prefix, added_findings, findings_in_changed_code,
+                                                    removed_findings))
         responses.add(responses.PUT, PrecommitClientTest.get_project_service_mock('pre-commit'), body=SUCCESS,
                       status=200)
         responses.add(responses.GET, PrecommitClientTest.get_project_service_mock('pre-commit'),
                       body=precommit_response, status=200, content_type="application/json", )
 
     @staticmethod
-    def mock_existing_findings(branch, existing_findings=None):
+    def mock_existing_findings(branch, existing_findings=None, path_prefix=DEFAULT_PATH_PREFIX):
         """Mocks returning the given existing findings for the provided branch.
         Findings can be provided as list of integers each of which represents a finding instance."""
-        existing_findings_from_current_branch = to_json(PrecommitClientTest._get_findings_as_dicts(existing_findings))
+        existing_findings_from_current_branch = to_json(
+            PrecommitClientTest._get_findings_as_dicts(existing_findings, path_prefix))
         responses.add(responses.GET, PrecommitClientTest.get_project_service_mock('findings', branch),
                       body=existing_findings_from_current_branch, status=200,
                       content_type="application/json", )
@@ -162,13 +201,15 @@ class PrecommitClientTest(TestCase):
         return re.compile(r'%s/p/%s/%s/.*%s.*' % (URL, PROJECT, service_id, branch))
 
     @staticmethod
-    def _get_precommit_client(changed_files, deleted_files, fetch_existing_findings=False,
+    def _get_precommit_client(changed_files, deleted_files, path_prefix=DEFAULT_PATH_PREFIX,
+                              fetch_existing_findings=False,
                               fetch_existing_findings_in_changes=False):
         """Gets a precommit client some of whose methods are mocked out for testing."""
         responses.add(responses.GET, PrecommitClientTest.get_global_service_mock('service-api-info'), status=200,
                       content_type="application/json", body='{"apiVersion": 6}')
         precommit_client = PrecommitClient(PrecommitClientTest._get_precommit_client_config(),
-                                           repository_path=REPO_PATH, analyzed_file=ANALYZED_FILE, verify=False,
+                                           repository_path=REPO_PATH, path_prefix=path_prefix,
+                                           analyzed_file=ANALYZED_FILE_PATH, verify=False,
                                            omit_links_to_findings=True, fetch_existing_findings=fetch_existing_findings,
                                            fetch_existing_findings_in_changes=fetch_existing_findings_in_changes)
         precommit_client._calculate_modifications = Mock()
@@ -195,7 +236,7 @@ class PrecommitClientTest(TestCase):
     @staticmethod
     def _get_changed_file():
         """Helper that returns a single changed path and content."""
-        return {ANALYZED_FILE: 'def foo():\n  pass'}
+        return {ANALYZED_FILE_NAME: 'def foo():\n  pass'}
 
     @staticmethod
     def _get_no_deleted_files():
@@ -203,15 +244,16 @@ class PrecommitClientTest(TestCase):
         return []
 
     @staticmethod
-    def _get_findings_churn(added_findings=None, findings_in_changed_code=None, removed_findings=None):
+    def _get_findings_churn(path_prefix, added_findings=None, findings_in_changed_code=None, removed_findings=None):
         """Returns the precommit findings churn as dict for the provided findings number list.
         Findings can be provided as list of integers each of which represents a finding instance."""
-        return {"addedFindings": PrecommitClientTest._get_findings_as_dicts(added_findings),
-                "findingsInChangedCode": PrecommitClientTest._get_findings_as_dicts(findings_in_changed_code),
-                'removedFindings': PrecommitClientTest._get_findings_as_dicts(removed_findings)}
+        return {"addedFindings": PrecommitClientTest._get_findings_as_dicts(added_findings, path_prefix),
+                "findingsInChangedCode": PrecommitClientTest._get_findings_as_dicts(findings_in_changed_code,
+                                                                                    path_prefix),
+                'removedFindings': PrecommitClientTest._get_findings_as_dicts(removed_findings, path_prefix)}
 
     @staticmethod
-    def _get_findings_as_dicts(findings_number_list):
+    def _get_findings_as_dicts(findings_number_list, path_prefix):
         """Transforms a list of integers each of which represents a finding instance into a list of dicts."""
         if not findings_number_list:
             return []
@@ -219,7 +261,8 @@ class PrecommitClientTest(TestCase):
         for finding_number in findings_number_list:
             findings_dict = {'id': str(finding_number), 'typeId': 'id%i' % finding_number,
                              'message': 'message%i' % finding_number, 'assessment': 'RED',
-                             'location': {'uniformPath': ANALYZED_FILE, 'rawStartLine': finding_number}}
+                             'location': {'uniformPath': path_prefix + ANALYZED_FILE_NAME,
+                                          'rawStartLine': finding_number}}
             findings_dicts.append(findings_dict)
         return findings_dicts
 
@@ -227,3 +270,8 @@ class PrecommitClientTest(TestCase):
         """Asserts that the given findings have the specified ids."""
         actual_findings_ids = [int(actual_finding.finding_id) for actual_finding in actual_findings]
         self.assertListEqual(actual_findings_ids, expected_ids)
+
+    def assert_findings_paths(self, actual_findings, expected_paths):
+        """Asserts that the given findings have the specified paths."""
+        actual_findings_paths = [actual_finding.uniformPath for actual_finding in actual_findings]
+        self.assertListEqual(actual_findings_paths, expected_paths)
