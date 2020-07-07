@@ -3,6 +3,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
+import copy
 import datetime
 import os
 import sys
@@ -19,6 +20,7 @@ from teamscale_precommit_client.git_utils import get_repo_root_from_file_in_repo
 # Filename of the precommit configuration. The client expects this config file at the root of the repository.
 PRECOMMIT_CONFIG_FILENAME = '.teamscale-precommit.config'
 DEFAULT_PROJECT_SUBPATH = ''
+DEFAULT_PATH_PREFIX = ''
 
 
 class PrecommitClient:
@@ -26,7 +28,8 @@ class PrecommitClient:
     # Number of seconds the client waits until fetching precommit results from the server.
     PRECOMMIT_WAITING_TIME_IN_SECONDS = 2
 
-    def __init__(self, teamscale_config, repository_path, project_subpath='', analyzed_file=None,
+    def __init__(self, teamscale_config, repository_path, path_prefix=DEFAULT_PATH_PREFIX, project_subpath='',
+                 analyzed_file=None,
                  verify=True, omit_links_to_findings=False, exclude_findings_in_changed_code=False,
                  fetch_existing_findings=False, fetch_all_findings=False, fetch_existing_findings_in_changes=False,
                  fail_on_red_findings=False, log_to_stderr=False):
@@ -34,8 +37,11 @@ class PrecommitClient:
         self.teamscale_client = TeamscaleClient(teamscale_config.url, teamscale_config.username,
                                                 teamscale_config.access_token, teamscale_config.project_id, verify)
         self.repository_path = repository_path
-        # os.path.join is required to add a tailing / if it's not already there
+
+        # calling os.path.join ensures a tailing '/'
+        self.path_prefix = os.path.join(path_prefix, '')
         self.project_subpath = os.path.join(project_subpath, '')
+
         self.analyzed_file = analyzed_file
         self.omit_links_to_findings = omit_links_to_findings
         self.exclude_findings_in_changed_code = exclude_findings_in_changed_code
@@ -112,8 +118,11 @@ class PrecommitClient:
         changed_files_in_project = self._filter_changed_files_in_project_subpath(self.changed_files)
         deleted_files_in_project = self._filter_deleted_files_in_project_subpath(self.deleted_files)
 
-        precommit_data = PreCommitUploadData(uniformPathToContentMap=changed_files_in_project,
-                                             deletedUniformPaths=deleted_files_in_project)
+        changed_files_with_path_prefix = self._apply_path_prefix_to_changed_files(changed_files_in_project)
+        deleted_files_with_path_prefix = self._apply_path_prefix_to_deleted_files(deleted_files_in_project)
+
+        precommit_data = PreCommitUploadData(uniformPathToContentMap=changed_files_with_path_prefix,
+                                             deletedUniformPaths=deleted_files_with_path_prefix)
         self.teamscale_client.upload_files_for_precommit_analysis(
             datetime.datetime.fromtimestamp(self.parent_commit_timestamp), precommit_data)
 
@@ -126,6 +135,15 @@ class PrecommitClient:
 
     def _filter_deleted_files_in_project_subpath(self, deleted_files):
         return list(filter(lambda path: path.startswith(self.project_subpath), deleted_files))
+
+    def _apply_path_prefix_to_changed_files(self, changed_files):
+        map_with_prefixes = {}
+        for key in changed_files.keys():
+            map_with_prefixes[self.path_prefix + key] = changed_files[key]
+        return map_with_prefixes
+
+    def _apply_path_prefix_to_deleted_files(self, deleted_files):
+        return list(map(lambda path: self.path_prefix + path, deleted_files))
 
     def _wait_and_get_precommit_result(self):
         """Gets the current precommit results. Waits synchronously until server is ready. """
@@ -206,7 +224,9 @@ class PrecommitClient:
         if len(findings) == 0:
             return ['> No findings.']
 
-        sorted_findings = sorted(findings)
+        findings_without_path_prefix = list(
+            map(lambda finding: self._copy_finding_without_path_prefix(finding), findings))
+        sorted_findings = sorted(findings_without_path_prefix)
         return [self._format_message(finding) for finding in sorted_findings]
 
     def _format_message(self, finding):
@@ -224,6 +244,16 @@ class PrecommitClient:
             return message
 
         return '%s | (%s)' % (message, link)
+
+    def _copy_finding_without_path_prefix(self, finding):
+        finding_without_path_prefix = copy.deepcopy(finding)
+        finding_without_path_prefix.uniformPath = self._remove_path_prefix(finding_without_path_prefix.uniformPath)
+        return finding_without_path_prefix
+
+    def _remove_path_prefix(self, path):
+        if path.startswith(self.path_prefix):
+            return path[len(self.path_prefix):]
+        return path
 
     @staticmethod
     def _get_finding_severity_message(finding):
@@ -269,6 +299,10 @@ def _parse_args():
     parser.add_argument('--project-subpath', metavar='project-subpath', type=str, default=DEFAULT_PROJECT_SUBPATH,
                         help='Project path relative to the git repository. '
                              'Pre-commit analysis will only be performed for files under this path.')
+    parser.add_argument('--path-prefix', metavar='PATH_PREFIX', type=str,
+                        help='Path prefix on Teamscale as configured with "Prepend repository identifier" or '
+                             '"Path prefix transformation". Please use "/" to separate folders.',
+                        default=DEFAULT_PATH_PREFIX)
     return parser.parse_args()
 
 
@@ -287,8 +321,8 @@ def _configure_precommit_client(parsed_args):
     repo_path = get_repo_root_from_file_in_repo(os.path.normpath(path_to_file_in_repo))
     config_file = os.path.join(repo_path, PRECOMMIT_CONFIG_FILENAME)
     config = get_teamscale_client_configuration(config_file)
-    return PrecommitClient(config, repository_path=repo_path, project_subpath=parsed_args.project_subpath,
-                           analyzed_file=path_to_file_in_repo,
+    return PrecommitClient(config, repository_path=repo_path, path_prefix=parsed_args.path_prefix,
+                           project_subpath=parsed_args.project_subpath, analyzed_file=path_to_file_in_repo,
                            verify=parsed_args.verify, omit_links_to_findings=parsed_args.omit_links_to_findings,
                            exclude_findings_in_changed_code=parsed_args.exclude_findings_in_changed_code,
                            fetch_existing_findings=parsed_args.fetch_existing_findings,
