@@ -163,7 +163,10 @@ class PrecommitClient:
         self._print('', log_to_stderr)
         self._print(message, log_to_stderr)
 
-        findings_in_project = self._remove_findings_outside_project_subpath(findings)
+        findings_without_path_prefix = list(
+            map(lambda finding: self._copy_finding_without_path_prefix(finding), findings))
+
+        findings_in_project = self._remove_findings_outside_project_subpath(findings_without_path_prefix)
 
         for formatted_finding in self._format_findings(findings_in_project, branch):
             self._print(formatted_finding, log_to_stderr)
@@ -224,9 +227,7 @@ class PrecommitClient:
         if len(findings) == 0:
             return ['> No findings.']
 
-        findings_without_path_prefix = list(
-            map(lambda finding: self._copy_finding_without_path_prefix(finding), findings))
-        sorted_findings = sorted(findings_without_path_prefix)
+        sorted_findings = sorted(findings)
         return [self._format_message(finding) for finding in sorted_findings]
 
     def _format_message(self, finding):
