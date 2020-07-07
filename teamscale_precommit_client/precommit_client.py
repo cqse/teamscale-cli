@@ -200,7 +200,7 @@ class PrecommitClient:
             return ['> No findings.']
 
         findings_without_path_prefix = list(
-            map(lambda finding: self._remove_path_prefix_from_finding(finding), findings))
+            map(lambda finding: self._copy_finding_without_path_prefix(finding), findings))
         sorted_findings = sorted(findings_without_path_prefix)
         return [self._format_message(finding) for finding in sorted_findings]
 
@@ -220,7 +220,7 @@ class PrecommitClient:
 
         return '%s | (%s)' % (message, link)
 
-    def _remove_path_prefix_from_finding(self, finding):
+    def _copy_finding_without_path_prefix(self, finding):
         finding_without_path_prefix = copy.deepcopy(finding)
         finding_without_path_prefix.uniformPath = self._remove_path_prefix(finding_without_path_prefix.uniformPath)
         return finding_without_path_prefix
