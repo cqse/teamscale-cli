@@ -109,22 +109,22 @@ class PrecommitClient:
 
         print("Uploading changes on branch '%s' in '%s'..." % (self.current_branch, self.repository_path))
 
-        changed_files_in_project = self._remove_changed_files_outside_project_subpath(self.changed_files)
-        deleted_files_in_project = self._remove_deleted_files_outside_project_subpath(self.deleted_files)
+        changed_files_in_project = self._filter_changed_files_in_project_subpath(self.changed_files)
+        deleted_files_in_project = self._filter_deleted_files_in_project_subpath(self.deleted_files)
 
         precommit_data = PreCommitUploadData(uniformPathToContentMap=changed_files_in_project,
                                              deletedUniformPaths=deleted_files_in_project)
         self.teamscale_client.upload_files_for_precommit_analysis(
             datetime.datetime.fromtimestamp(self.parent_commit_timestamp), precommit_data)
 
-    def _remove_changed_files_outside_project_subpath(self, uniform_path_content_map):
+    def _filter_changed_files_in_project_subpath(self, uniform_path_content_map):
         project_files_map = {}
         for key in uniform_path_content_map.keys():
             if key.startswith(self.project_subpath):
                 project_files_map[key] = uniform_path_content_map[key]
         return project_files_map
 
-    def _remove_deleted_files_outside_project_subpath(self, deleted_files):
+    def _filter_deleted_files_in_project_subpath(self, deleted_files):
         return list(filter(lambda path: path.startswith(self.project_subpath), deleted_files))
 
     def _wait_and_get_precommit_result(self):
