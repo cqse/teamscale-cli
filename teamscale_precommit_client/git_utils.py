@@ -31,7 +31,7 @@ def get_repo_root_from_file_in_repo(path_to_file_in_repo):
     git_folder = discover_repository(path_to_file_in_repo)
     if not git_folder:
         return None
-    return os.path.dirname(os.path.dirname(git_folder))
+    return Repository(git_folder).workdir
 
 def get_current_timestamp(path_to_repository):
     """Utility method for getting the timestamp of the last commit from a Git repository.
