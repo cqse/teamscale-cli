@@ -7,7 +7,7 @@ from io import open
 
 from git import Repo, InvalidGitRepositoryError
 
-# [M]odified, [A]dded, [C]opied, [T]ype changed, [R]enamed (R092 shoudl be R according to
+# [M]odified, [A]dded, [C]opied, [T]ype changed, [R]enamed (R092 should be R according to
 # https://gitpython.readthedocs.io/en/stable/reference.html#git.diff.DiffIndex, but testing it locally gave R092
 _CHANGE_TYPES_CONSIDERED_FOR_PRECOMMIT = ['M', 'A', 'C', 'T', 'R092']
 
