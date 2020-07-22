@@ -20,15 +20,15 @@ setup(
         ]
     },
     install_requires=[
-          'teamscale-client',
-          'pygit2'
+        'teamscale-client',
+        'gitpython==2.1.8',
     ],
     tests_require=[
-          'teamscale-client',
-          'pygit2',
-          'pytest',
-          'responses',
-          'mock'
+        'teamscale-client',
+        'pygit2',
+        'pytest',
+        'responses',
+        'mock'
     ],
     setup_requires=["pytest-runner"]
 )
