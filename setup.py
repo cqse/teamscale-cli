@@ -21,11 +21,11 @@ setup(
     },
     install_requires=[
         'teamscale-client',
-        'gitpython==2.1.8',
+        'gitpython==2.1.8'
     ],
     tests_require=[
         'teamscale-client',
-        'pygit2',
+        'gitpython==2.1.8',
         'pytest',
         'responses',
         'mock'
