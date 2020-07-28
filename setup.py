@@ -22,7 +22,7 @@ setup(
     install_requires=[
         'teamscale-client',
         'gitdb2==2.0.6',
-        'gitpython==2.1.8'
+        'gitpython==2.1.15',
     ],
     tests_require=[
         'teamscale-client',
