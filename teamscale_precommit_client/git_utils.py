@@ -9,7 +9,7 @@ from git import Repo, InvalidGitRepositoryError
 
 # [M]odified, [A]dded, [C]opied, [T]ype changed, [R]enamed (R092 should be R according to
 # https://gitpython.readthedocs.io/en/stable/reference.html#git.diff.DiffIndex, but testing it locally gave R092
-_CHANGE_TYPES_CONSIDERED_FOR_PRECOMMIT = ['M', 'A', 'C', 'T', 'R092']
+_CHANGE_TYPES_CONSIDERED_FOR_PRECOMMIT = ['M', 'A', 'C', 'T', 'R', 'R092']
 
 _CHANGE_TYPE_DELETED = 'D'
 
@@ -116,6 +116,6 @@ def _get_diff_to_last_commit(path_to_repository):
             List(git.diff.Diff): List of Diff objects for every file
     """
     repo = Repo(path_to_repository)
-    modified_diff = repo.index.diff(None)
+    unstaged_diff = repo.index.diff(None)
     staged_diff = repo.head.commit.diff()
-    return modified_diff + staged_diff
+    return unstaged_diff + staged_diff

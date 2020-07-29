@@ -22,9 +22,9 @@ setup(
     install_requires=[
         'teamscale-client',
         'gitpython==2.1.15',
-       
+
         # Required for gitpython, build fails without specifying a fixed version.
-        # 2.0.6 is the latest version working with 2.7 according to
+        # 2.0.6 is the latest version working with python 2.7 according to
         # https://github.com/gitpython-developers/gitdb/issues/61#issuecomment-590275845
         'gitdb2==2.0.6'
     ],
