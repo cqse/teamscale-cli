@@ -14,7 +14,7 @@ cache:
     - $HOME/.cache/pip
 
 install:
-  - pip install -e .
+  - pip install .
 
 script:
   - python setup.py test
