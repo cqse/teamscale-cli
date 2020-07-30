@@ -1,17 +1,18 @@
 from __future__ import absolute_import
-from __future__ import unicode_literals
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import os
-from pygit2 import Repository, GIT_STATUS_WT_DELETED, GIT_STATUS_WT_MODIFIED, GIT_STATUS_WT_RENAMED, \
-    GIT_STATUS_WT_TYPECHANGE, GIT_STATUS_INDEX_NEW, GIT_STATUS_INDEX_MODIFIED, GIT_STATUS_INDEX_DELETED, \
-    discover_repository
 from io import open
 
-_STATI_CONSIDERED_FOR_PRECOMMIT = GIT_STATUS_INDEX_NEW | GIT_STATUS_INDEX_MODIFIED | GIT_STATUS_WT_MODIFIED | \
-                                  GIT_STATUS_WT_RENAMED | GIT_STATUS_WT_TYPECHANGE
+from git import Repo, InvalidGitRepositoryError
 
-_STATI_DELETED = GIT_STATUS_INDEX_DELETED | GIT_STATUS_WT_DELETED
+# [M]odified, [A]dded, [C]opied, [T]ype changed, [R]enamed (R092 should be R according to
+# https://gitpython.readthedocs.io/en/stable/reference.html#git.diff.DiffIndex, but testing it locally gave R092)
+_CHANGE_TYPES_CONSIDERED_FOR_PRECOMMIT = ['M', 'A', 'C', 'T', 'R', 'R092']
+
+_CHANGE_TYPE_DELETED = 'D'
+
 
 def get_current_branch(path_to_repository):
     """Utility method for getting the current branch from a Git repository.
@@ -22,16 +23,19 @@ def get_current_branch(path_to_repository):
         Returns:
             str: The current branch in the provided repository.
     """
-    repo = Repository(path_to_repository)
-    head = repo.lookup_reference("HEAD").resolve()
-    return head.shorthand
+    repo = Repo(path_to_repository)
+    return repo.active_branch.name
+
 
 def get_repo_root_from_file_in_repo(path_to_file_in_repo):
     """Get the repository root for the given path in the repository."""
-    git_folder = discover_repository(path_to_file_in_repo)
-    if not git_folder:
+    try:
+        repo = Repo(path=path_to_file_in_repo, search_parent_directories=True)
+        git_root = repo.git.rev_parse("--show-toplevel")
+        return git_root
+    except InvalidGitRepositoryError:
         return None
-    return os.path.dirname(os.path.dirname(git_folder))
+
 
 def get_current_timestamp(path_to_repository):
     """Utility method for getting the timestamp of the last commit from a Git repository.
@@ -42,9 +46,9 @@ def get_current_timestamp(path_to_repository):
         Returns:
             str: The timestamp of the last commit in the provided repository.
     """
-    repo = Repository(path_to_repository)
-    head = repo.revparse_single('HEAD')
-    return head.commit_time
+    repo = Repo(path_to_repository)
+    return repo.head.commit.committed_date
+
 
 def filter_changed_files(changed_files, path_to_repository):
     """Filters the provided list of changed files.
@@ -59,6 +63,7 @@ def filter_changed_files(changed_files, path_to_repository):
             filtered_files.append(changed_file)
     return filtered_files
 
+
 def get_changed_files_and_content(path_to_repository):
     """Utility method for getting the currently changed files from a Git repository.
 
@@ -71,7 +76,9 @@ def get_changed_files_and_content(path_to_repository):
             dict: Mapping of filename to file content for all changed files in the provided repository.
     """
     changed_files = filter_changed_files(get_changed_files(path_to_repository), path_to_repository)
-    return {filename: open(os.path.join(path_to_repository, filename), encoding='utf-8').read() for filename in changed_files}
+    return {filename: open(os.path.join(path_to_repository, filename), encoding='utf-8').read() for filename in
+            changed_files}
+
 
 def get_changed_files(path_to_repository):
     """Utility method for getting the currently changed files from a Git repository.
@@ -82,9 +89,9 @@ def get_changed_files(path_to_repository):
         Returns:
             List(str): List of filenames of all changed files in the provided repository.
     """
-    repo = Repository(path_to_repository)
-    status_entries = repo.status()
-    return [path for path, st in status_entries.items() if st & _STATI_CONSIDERED_FOR_PRECOMMIT]
+    diff = _get_diff_to_last_commit(path_to_repository)
+    return [item.b_path for item in diff if item.change_type in _CHANGE_TYPES_CONSIDERED_FOR_PRECOMMIT]
+
 
 def get_deleted_files(path_to_repository):
     """Utility method for getting the deleted files from a Git repository.
@@ -95,6 +102,20 @@ def get_deleted_files(path_to_repository):
         Returns:
             List(str): List of filenames of all deleted files in the provided repository.
     """
-    repo = Repository(path_to_repository)
-    status_entries = repo.status()
-    return [path for path, st in status_entries.items() if st & _STATI_DELETED]
+    diff = _get_diff_to_last_commit(path_to_repository)
+    return [item.b_path for item in diff if item.change_type == _CHANGE_TYPE_DELETED]
+
+
+def _get_diff_to_last_commit(path_to_repository):
+    """ Utility method for getting a diff between the working copy and the HEAD commit
+
+        Args:
+            path_to_repository (str): Path to the Git repository
+
+        Returns:
+            List(git.diff.Diff): List of Diff objects for every file
+    """
+    repo = Repo(path_to_repository)
+    unstaged_diff = repo.index.diff(None)
+    staged_diff = repo.head.commit.diff()
+    return unstaged_diff + staged_diff

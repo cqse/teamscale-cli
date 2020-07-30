@@ -11,14 +11,10 @@ python:
 
 cache:
   directories:
-      - $HOME/.cache/pip
-
-before_install:
-    - sudo apt-get -y install libgit2-dev
+    - $HOME/.cache/pip
 
 install:
-    - pip install 'pygit2==0.26.4'
-    - pip install -e .
+  - pip install .
 
 script:
-    - python setup.py test
+  - python setup.py test
