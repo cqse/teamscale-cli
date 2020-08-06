@@ -224,10 +224,10 @@ class PrecommitClientTest(TestCase):
 
         self.mock_existing_findings(CURRENT_BRANCH)
         self.precommit_client.run()
-        precommit_request = next(
+        existing_findings_request = next(
             call.request for call in responses.calls if call.request.method == 'GET' and 'findings' in call.request.url)
 
-        self.assertIn(path_prefix, precommit_request.url)
+        self.assertIn(path_prefix, existing_findings_request.url)
 
     @responses.activate
     def test_apply_path_prefix_when_fetching_existing_findings_in_changes(self):
@@ -241,10 +241,10 @@ class PrecommitClientTest(TestCase):
         self.mock_precommit_findings_churn()
         self.mock_existing_findings(self.precommit_client._get_precommit_branch())
         self.precommit_client.run()
-        precommit_request = next(
+        existing_findings_request = next(
             call.request for call in responses.calls if call.request.method == 'GET' and 'findings' in call.request.url)
 
-        self.assertIn(path_prefix, precommit_request.url)
+        self.assertIn(path_prefix, existing_findings_request.url)
 
     @staticmethod
     def mock_precommit_findings_churn(added_findings=None, findings_in_changed_code=None, removed_findings=None,
