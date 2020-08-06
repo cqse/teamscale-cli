@@ -214,6 +214,38 @@ class PrecommitClientTest(TestCase):
         # Check if the path prefix was applied and sent correctly in the request's body
         self.assertNotIn(path_prefix, captured_output.getvalue())
 
+    @responses.activate
+    def test_apply_path_prefix_when_fetching_existing_findings(self):
+        """ Tests whether the path prefix is applied when fetching existing findings in the analyzed file.
+        We do this by checking if the path prefix appears in the url of the request for fetching the findings"""
+        path_prefix = 'prefix'
+        self.precommit_client = self._get_precommit_client(self._get_no_changed_files(), self._get_no_deleted_files(),
+                                                           path_prefix=path_prefix, fetch_existing_findings=True)
+
+        self.mock_existing_findings(CURRENT_BRANCH)
+        self.precommit_client.run()
+        precommit_request = next(
+            call.request for call in responses.calls if call.request.method == 'GET' and 'findings' in call.request.url)
+
+        self.assertIn(path_prefix, precommit_request.url)
+
+    @responses.activate
+    def test_apply_path_prefix_when_fetching_existing_findings_in_changes(self):
+        """ Tests whether the path prefix is applied when fetching existing findings in changed files.
+        We do this by checking if the path prefix appears in the url of the request for fetching the findings"""
+        path_prefix = 'prefix'
+        self.precommit_client = self._get_precommit_client(self._get_changed_file(), self._get_no_deleted_files(),
+                                                           path_prefix=path_prefix,
+                                                           fetch_existing_findings_in_changes=True)
+
+        self.mock_precommit_findings_churn()
+        self.mock_existing_findings(self.precommit_client._get_precommit_branch())
+        self.precommit_client.run()
+        precommit_request = next(
+            call.request for call in responses.calls if call.request.method == 'GET' and 'findings' in call.request.url)
+
+        self.assertIn(path_prefix, precommit_request.url)
+
     @staticmethod
     def mock_precommit_findings_churn(added_findings=None, findings_in_changed_code=None, removed_findings=None,
                                       path_prefix=DEFAULT_PATH_PREFIX):
