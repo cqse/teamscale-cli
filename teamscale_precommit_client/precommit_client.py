@@ -29,8 +29,7 @@ class PrecommitClient:
     PRECOMMIT_WAITING_TIME_IN_SECONDS = 2
 
     def __init__(self, teamscale_config, repository_path, path_prefix=DEFAULT_PATH_PREFIX, project_subpath='',
-                 analyzed_file=None,
-                 verify=True, omit_links_to_findings=False, exclude_findings_in_changed_code=False,
+                 analyzed_file=None, verify=True, omit_links_to_findings=False, exclude_findings_in_changed_code=False,
                  fetch_existing_findings=False, fetch_all_findings=False, fetch_existing_findings_in_changes=False,
                  fail_on_red_findings=False, log_to_stderr=False):
         """Constructor"""
@@ -201,6 +200,7 @@ class PrecommitClient:
         else:
             self.teamscale_client.branch = self.current_branch
         uniform_path = os.path.relpath(self.analyzed_file, self.repository_path)
+        uniform_path = os.path.join(self.path_prefix, uniform_path)
         if self.fetch_all_findings:
             uniform_path = ''
         self.existing_findings = self.teamscale_client.get_findings(uniform_path=uniform_path, timestamp=None)
@@ -217,6 +217,7 @@ class PrecommitClient:
         self.teamscale_client.branch = self._get_precommit_branch()
         self.existing_findings = []
         for uniform_path in self.changed_files:
+            uniform_path = os.path.join(self.path_prefix, uniform_path)
             self.existing_findings.extend(self.teamscale_client.get_findings(uniform_path=uniform_path, timestamp=None))
         self._remove_precommit_findings_from_existing_findings()
 
