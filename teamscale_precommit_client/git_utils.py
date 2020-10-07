@@ -10,8 +10,8 @@ from git import Repo, InvalidGitRepositoryError
 # [M]odified, [A]dded, [C]opied, [T]ype changed, [R]enamed (R092 should be R according to
 # https://gitpython.readthedocs.io/en/stable/reference.html#git.diff.DiffIndex, but testing it locally gave R092)
 _CHANGE_TYPES_CONSIDERED_FOR_PRECOMMIT = ['M', 'A', 'C', 'T', 'R', 'R092']
-
 _CHANGE_TYPE_DELETED = 'D'
+FILE_ENCODING = 'utf-8'
 
 
 def get_current_branch(path_to_repository):
@@ -53,14 +53,24 @@ def get_current_timestamp(path_to_repository):
 def filter_changed_files(changed_files, path_to_repository):
     """Filters the provided list of changed files.
 
-    Files larger than 1 MB are ignored.
+    Non UTF-8 files and files larger than 1 MB are ignored.
     """
     filtered_files = []
     for changed_file in changed_files:
+        file_is_valid = True
         if os.path.getsize(os.path.join(path_to_repository, changed_file)) > 1 * 1024 * 1024:
             print('File too large for precommit analysis. Ignoring: %s' % changed_file)
-        else:
+            file_is_valid = False
+
+        try:
+            open(os.path.join(path_to_repository, changed_file), encoding=FILE_ENCODING).read()
+        except UnicodeDecodeError:
+            print('File not encoded in %s. Ignoring: %s' % (FILE_ENCODING, changed_file))
+            file_is_valid = False
+
+        if file_is_valid:
             filtered_files.append(changed_file)
+
     return filtered_files
 
 
@@ -76,7 +86,7 @@ def get_changed_files_and_content(path_to_repository):
             dict: Mapping of filename to file content for all changed files in the provided repository.
     """
     changed_files = filter_changed_files(get_changed_files(path_to_repository), path_to_repository)
-    return {filename: open(os.path.join(path_to_repository, filename), encoding='utf-8').read() for filename in
+    return {filename: open(os.path.join(path_to_repository, filename), encoding=FILE_ENCODING).read() for filename in
             changed_files}
 
 
