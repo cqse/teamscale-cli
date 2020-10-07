@@ -65,6 +65,7 @@ def filter_changed_files(changed_files, path_to_repository):
         try:
             open(os.path.join(path_to_repository, changed_file), encoding=FILE_ENCODING).read()
         except UnicodeDecodeError:
+            print('File not encoded in %s. Ignoring: %s' % (FILE_ENCODING, changed_file))
             file_is_valid = False
 
         if file_is_valid:
