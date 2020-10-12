@@ -11,5 +11,5 @@ class GitUtilsTest(unittest.TestCase):
         """ Test that binary files are filtered before precommit analysis """
         test_dir = os.path.dirname(os.path.abspath(__file__))
         binary_file_name = "binary.png"
-        files_for_precommit_analysis = filter_changed_files([binary_file_name], test_dir)
+        files_for_precommit_analysis = filter_changed_files([binary_file_name], test_dir, None)
         self.assertEqual(files_for_precommit_analysis, [])
