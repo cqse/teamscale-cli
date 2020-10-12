@@ -11,7 +11,6 @@ from git import Repo, InvalidGitRepositoryError
 # https://gitpython.readthedocs.io/en/stable/reference.html#git.diff.DiffIndex, but testing it locally gave R092)
 _CHANGE_TYPES_CONSIDERED_FOR_PRECOMMIT = ['M', 'A', 'C', 'T', 'R', 'R092']
 _CHANGE_TYPE_DELETED = 'D'
-FILE_ENCODING = 'utf-8'
 
 
 def get_current_branch(path_to_repository):
@@ -50,7 +49,7 @@ def get_current_timestamp(path_to_repository):
     return repo.head.commit.committed_date
 
 
-def filter_changed_files(changed_files, path_to_repository):
+def filter_changed_files(changed_files, path_to_repository, file_encoding):
     """Filters the provided list of changed files.
 
     Non UTF-8 files and files larger than 1 MB are ignored.
@@ -63,9 +62,9 @@ def filter_changed_files(changed_files, path_to_repository):
             file_is_valid = False
 
         try:
-            open(os.path.join(path_to_repository, changed_file), encoding=FILE_ENCODING).read()
+            open(os.path.join(path_to_repository, changed_file), encoding=file_encoding).read()
         except UnicodeDecodeError:
-            print('File not encoded in %s. Ignoring: %s' % (FILE_ENCODING, changed_file))
+            print('File not encoded in %s. Ignoring: %s' % (file_encoding, changed_file))
             file_is_valid = False
 
         if file_is_valid:
@@ -74,19 +73,20 @@ def filter_changed_files(changed_files, path_to_repository):
     return filtered_files
 
 
-def get_changed_files_and_content(path_to_repository):
+def get_changed_files_and_content(path_to_repository, file_encoding):
     """Utility method for getting the currently changed files from a Git repository.
 
     Filters the changed files using `filter_changed_files`.
 
         Args:
             path_to_repository (str): Path to the Git repository
+            file_encoding (str): Encoding of the files in the repository (c.f. https://docs.python.org/3/library/codecs.html#standard-encodings)
 
         Returns:
             dict: Mapping of filename to file content for all changed files in the provided repository.
     """
-    changed_files = filter_changed_files(get_changed_files(path_to_repository), path_to_repository)
-    return {filename: open(os.path.join(path_to_repository, filename), encoding=FILE_ENCODING).read() for filename in
+    changed_files = filter_changed_files(get_changed_files(path_to_repository), path_to_repository, file_encoding)
+    return {filename: open(os.path.join(path_to_repository, filename), encoding=file_encoding).read() for filename in
             changed_files}
 
 

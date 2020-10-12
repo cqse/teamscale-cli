@@ -21,6 +21,7 @@ from teamscale_precommit_client.git_utils import get_repo_root_from_file_in_repo
 PRECOMMIT_CONFIG_FILENAME = '.teamscale-precommit.config'
 DEFAULT_PROJECT_SUBPATH = ''
 DEFAULT_PATH_PREFIX = ''
+DEFAULT_FILE_ENCODING = None  # Use system encoding
 
 
 class PrecommitClient:
@@ -31,7 +32,7 @@ class PrecommitClient:
     def __init__(self, teamscale_config, repository_path, path_prefix=DEFAULT_PATH_PREFIX, project_subpath='',
                  analyzed_file=None, verify=True, omit_links_to_findings=False, exclude_findings_in_changed_code=False,
                  fetch_existing_findings=False, fetch_all_findings=False, fetch_existing_findings_in_changes=False,
-                 fail_on_red_findings=False, log_to_stderr=False):
+                 fail_on_red_findings=False, log_to_stderr=False, file_encoding=DEFAULT_FILE_ENCODING):
         """Constructor"""
         self.teamscale_client = TeamscaleClient(teamscale_config.url, teamscale_config.username,
                                                 teamscale_config.access_token, teamscale_config.project_id, verify)
@@ -57,6 +58,7 @@ class PrecommitClient:
         self.findings_in_changed_code = []
         self.current_branch = ''
         self.parent_commit_timestamp = 0
+        self.file_encoding = file_encoding
 
     def run(self):
         """Performs the precommit analysis. Depending on the modifications made and the flags provided to the client,
@@ -87,7 +89,7 @@ class PrecommitClient:
         if not self.repository_path or not os.path.exists(self.repository_path) or not os.path.isdir(
                 self.repository_path):
             raise RuntimeError('Invalid path to file in repository: %s' % self.repository_path)
-        self.changed_files = get_changed_files_and_content(self.repository_path)
+        self.changed_files = get_changed_files_and_content(self.repository_path, self.file_encoding)
         self.deleted_files = get_deleted_files(self.repository_path)
 
     def _retrieve_current_branch(self):
@@ -305,6 +307,11 @@ def _parse_args():
                         help='Path prefix on Teamscale as configured with "Prepend repository identifier" or '
                              '"Path prefix transformation". Please use "/" to separate folders.',
                         default=DEFAULT_PATH_PREFIX)
+    parser.add_argument('--file-encoding', metavar='FILE_ENCODING', type=str,
+                        help='The encoding of your files '
+                             '(c.f. https://docs.python.org/3/library/codecs.html#standard-encodings).'
+                             ' By default, the system encoding will be used.',
+                        default=DEFAULT_FILE_ENCODING)
     return parser.parse_args()
 
 
@@ -331,7 +338,8 @@ def _configure_precommit_client(parsed_args):
                            fetch_all_findings=parsed_args.fetch_all_findings,
                            fetch_existing_findings_in_changes=parsed_args.fetch_existing_findings_in_changes,
                            fail_on_red_findings=parsed_args.fail_on_red_findings,
-                           log_to_stderr=parsed_args.log_to_stderr)
+                           log_to_stderr=parsed_args.log_to_stderr,
+                           file_encoding=parsed_args.file_encoding)
 
 
 def run():
