@@ -135,6 +135,7 @@ New files that are not in the index will be ignored.
 ## Troubleshooting
 
 - If python does not find the name `ConverterMapping` try uninstalling the `python-configparser` system package and install `configparser` via pip.
+- If your files are not uploaded for pre-commit analysis make sure that you specified the correct encoding with the `--file-encoding` option. By default, the system encoding will be used for decoding.
 
 ## Limits
 
