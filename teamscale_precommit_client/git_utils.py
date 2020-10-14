@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import locale
 import os
 from io import open
 
@@ -65,7 +66,13 @@ def filter_changed_files(changed_files, path_to_repository, file_encoding):
             with open(os.path.join(path_to_repository, changed_file), encoding=file_encoding) as file:
                 file.read()
         except UnicodeDecodeError:
-            print('File not encoded in %s. Ignoring: %s' % (file_encoding, changed_file))
+            encoding_string = file_encoding
+            if encoding_string is None:
+                encoding_string = locale.getpreferredencoding() + ' (system encoding)'
+
+            print(
+                'File at %s is not encoded in %s. Try using the --file-encoding option.' % (
+                    changed_file, encoding_string))
             file_is_valid = False
 
         if file_is_valid:
