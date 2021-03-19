@@ -31,6 +31,11 @@ def get_repo_root_from_file_in_repo(path_to_file_in_repo):
     """Get the repository root for the given path in the repository."""
     try:
         repo = Repo(path=path_to_file_in_repo, search_parent_directories=True)
+
+        submodules_root = repo.git.rev_parse("--show-superproject-working-tree")
+        if submodules_root:
+            return submodules_root
+
         git_root = repo.git.rev_parse("--show-toplevel")
         return git_root
     except InvalidGitRepositoryError:
