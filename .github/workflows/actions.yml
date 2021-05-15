@@ -22,7 +22,7 @@ jobs:
       run: |
         pip install .
         pip install pyinstaller==4.3
-        pyinstaller ./teamscale_precommit_client/precommit_client.py --onefile -path ./teamscale_precommit_client --name teamscale-cli
+        pyinstaller ./teamscale_precommit_client/precommit_client.py --onefile --path ./teamscale_precommit_client --name teamscale-cli
         chmod +x ./dist/teamscale-cli
       # - name: Create binary
       #   uses: JackMcKew/pyinstaller-action-linux@0.1.4
