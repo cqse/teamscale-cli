@@ -18,24 +18,22 @@ jobs:
       with:
         python-version: '3.x'
         architecture: 'x64'
-    - name: Build
-      run: pip install .
-      #- name: Test
-      #run: python setup.py test
-      # - name: Create binary
-      #   run: |
-      #     pip install pyinstaller==4.3
-      #     pyinstaller ./teamscale_precommit_client/precommit_client.py --onefile -path ./teamscale_precommit_client --name teamscale-cli
     - name: Create binary
-      uses: JackMcKew/pyinstaller-action-linux@0.1.4
-      with:
-        path: teamscale_precommit_client
-        spec: precommit_client.spec
+      run: |
+        pip install .
+        pip install pyinstaller==4.3
+        pyinstaller ./teamscale_precommit_client/precommit_client.py --onefile -path ./teamscale_precommit_client --name teamscale-cli
+        chmod +x ./dist/teamscale-cli
+      # - name: Create binary
+      #   uses: JackMcKew/pyinstaller-action-linux@0.1.4
+      #   with:
+      #     path: teamscale_precommit_client
+      #     spec: precommit_client.spec
     - name: 'Upload Artifact'
       if: ${{ always() }}
       uses: actions/upload-artifact@v2
       with:
-        name: target-linux
-        path: ./teamscale_precommit_client/dist/linux/precommit_client
+        name: teamscale-cli-linux
+        path: ./dist/teamscale-cli
         retention-days: 5
 
