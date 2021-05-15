@@ -26,6 +26,7 @@ jobs:
       uses: JackMcKew/pyinstaller-action-linux@0.1.4
       with:
         path: teamscale_precommit_client
+        spec: precommit_client.spec
     - name: 'Upload Artifact'
       if: ${{ always() }}
       uses: actions/upload-artifact@v2
