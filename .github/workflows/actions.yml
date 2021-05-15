@@ -32,6 +32,6 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: target-linux
-        path: ./dist/precommit_client
+        path: ./teamscale_precommit_client/dist/precommit_client
         retention-days: 5
 
