@@ -23,14 +23,15 @@ jobs:
     - name: Create binary
       run: |
         pip install .
-        pip install pyinstaller==4.3
-        pyinstaller ./teamscale_precommit_client/precommit_client.py --onefile --path ./teamscale_precommit_client --name teamscale-cli
+        pip install nuitka==0.6.14.7
+        python -m nuitka --standalone --onefile --linux-onefile-icon /usr/share/pixmaps/python3.xpm teamscale_precommit_client/precommit_client.py
+        mv precommit_client.bin teamscale-cli
     - name: 'Upload Artifact'
       if: ${{ always() }}
       uses: actions/upload-artifact@v2
       with:
         name: target-linux
-        path: ./dist/teamscale-cli
+        path: ./teamscale-cli
         retention-days: 5
 
   build-windows:
@@ -45,22 +46,23 @@ jobs:
         architecture: 'x64'
     # We do not use --onefile for Windows builds as unpacking the exe to a temp directory
     # is _super_ slow on Windows and performance is key for precommit
+    - name: Set up MinGW
+      uses: egor-tensin/setup-mingw@v2
+      with:
+        platform: x64
     - name: Create binary
       run: |
         pip install .
-        pip install pyinstaller==4.3
-        pyinstaller ./teamscale_precommit_client/precommit_client.py --path ./teamscale_precommit_client --name teamscale-cli
-    - name: Reduce Image Size
-      uses: crazy-max/ghaction-upx@v1
-      with:
-        version: latest
-        file: ./dist/teamscale-cli/teamscale-cli.exe
+        pip install nuitka==0.6.14.7
+        python -m nuitka --mingw64 teamscale_precommit_client/precommit_client.py
+        mv ./precommit_client.dist ./teamscale-cli
+        mv ./teamscale-cli/precommit_client.exe ./teamscale-cli/teamscale-cli.exe
     - name: 'Upload Artifact'
       if: ${{ always() }}
       uses: actions/upload-artifact@v2
       with:
         name: target-windows
-        path: ./dist/teamscale-cli
+        path: ./teamscale-cli
         retention-days: 5
 
   release:
