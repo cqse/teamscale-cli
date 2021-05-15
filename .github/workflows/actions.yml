@@ -18,6 +18,8 @@ jobs:
       with:
         python-version: '3.x'
         architecture: 'x64'
+    # we do not use the available GitHub action as that does not support building
+    # entrypoints that are not located in the root folder of the repo at the moment
     - name: Create binary
       run: |
         pip install .
@@ -41,17 +43,19 @@ jobs:
       with:
         python-version: '3.x'
         architecture: 'x64'
+    # We do not use --onefile for Windows builds as unpacking the exe to a temp directory
+    # is _super_ slow on Windows and performance is key for precommit
     - name: Create binary
       run: |
         pip install .
         pip install pyinstaller==4.3
-        pyinstaller ./teamscale_precommit_client/precommit_client.py --onefile --path ./teamscale_precommit_client --name teamscale-cli
+        pyinstaller ./teamscale_precommit_client/precommit_client.py --path ./teamscale_precommit_client --name teamscale-cli
     - name: 'Upload Artifact'
       if: ${{ always() }}
       uses: actions/upload-artifact@v2
       with:
         name: target-windows
-        path: ./dist/teamscale-cli.exe
+        path: ./dist/teamscale-cli
         retention-days: 5
 
   release:
@@ -66,8 +70,7 @@ jobs:
       - name: Package
         run: |
           (cd ./target-linux && chmod +x ./teamscale-cli && zip ../teamscale-cli-linux.zip ./teamscale-cli)
-          (cd ./target-windows && zip ../teamscale-cli-windows.zip ./teamscale-cli.exe)
-          ls -al ./target-*
+          (cd ./target-windows && zip -r ../teamscale-cli-windows.zip ./teamscale-cli)
       - name: Upload Release Assets
         id: create_release
         uses: svenstaro/upload-release-action@v2

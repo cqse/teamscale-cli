@@ -8,3 +8,4 @@ __pycache__/
 .DS_Store
 *.pyc
 .teamscale-precommit.config
+*.spec
