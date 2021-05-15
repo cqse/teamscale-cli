@@ -146,3 +146,26 @@ The precommit analysis has some builtin limits whose goal is to prevent denial o
 - Precommit analysis uploads might only be done once every 5 seconds per user (can be changed on the server).
 
 These are automatically applied and cannot be disabled.
+
+# Developing
+
+## Preparation
+
+1. Install [pip](https://pypi.org/project/pip/), e.g. via your system's package manager.
+2. Install all dependencies:
+   ```sh
+   pip install .
+   ```
+
+## Building
+
+```sh
+python setup.py build
+```
+
+## Running Tests
+
+```sh
+python setup.py test
+```
+
