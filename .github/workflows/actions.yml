@@ -55,7 +55,7 @@ jobs:
         retention-days: 5
 
   release:
-    #if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v')
     needs: 
       - build-windows
       - build-linux
@@ -67,12 +67,12 @@ jobs:
         run: |
           (cd ./target-linux && zip ../teamscale-cli-linux.zip ./teamscale-cli)
           (cd ./target-windows && zip ../teamscale-cli-windows.zip ./teamscale-cli.exe)
-          #- name: Upload Release Assets
-          #  id: create_release
-          #  uses: svenstaro/upload-release-action@v2
-          #  with:
-          #    repo_token: ${{ secrets.GITHUB_TOKEN }}
-          #    tag: ${{ github.ref }}
-          #    file: teamscale-cli-*.zip
-          #    file_glob: true
-          #    overwrite: true
+      - name: Upload Release Assets
+        id: create_release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref }}
+          file: teamscale-cli-*.zip
+          file_glob: true
+          overwrite: true
