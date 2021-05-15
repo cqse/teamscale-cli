@@ -50,6 +50,11 @@ jobs:
         pip install .
         pip install pyinstaller==4.3
         pyinstaller ./teamscale_precommit_client/precommit_client.py --path ./teamscale_precommit_client --name teamscale-cli
+    - name: Reduce Image Size
+      uses: crazy-max/ghaction-upx@v1
+      with:
+        version: latest
+        file: ./dist/teamscale-cli/teamscale-cli.exe
     - name: 'Upload Artifact'
       if: ${{ always() }}
       uses: actions/upload-artifact@v2
