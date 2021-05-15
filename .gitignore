@@ -1,8 +1,8 @@
 /venv/
-/dist/
+**/dist/
 /.eggs/
 /teamscale_cli.egg-info/
-/build/
+**/build/
 .idea/
 __pycache__/
 .DS_Store

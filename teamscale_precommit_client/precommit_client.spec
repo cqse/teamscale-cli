@@ -4,8 +4,8 @@
 block_cipher = None
 
 
-a = Analysis(['teamscale_precommit_client/precommit_client.py'],
-             pathex=['teamscale_precommit_client', '/home/k/teamscale-cli'],
+a = Analysis(['precommit_client.py'],
+             pathex=['/home/k/proj/teamscale-cli/teamscale_precommit_client'],
              binaries=[],
              datas=[],
              hiddenimports=[],
