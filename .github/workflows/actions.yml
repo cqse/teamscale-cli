@@ -1,0 +1,36 @@
+name: Build
+
+on:
+  push:
+    branches: '*'
+    tags: 'v*'
+  pull_request:
+    branches: '*'
+
+jobs:
+  build-linux:
+    name: Linux Build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v2.2.2
+      with:
+        python-version: '3.x'
+        architecture: 'x64'
+    - name: Build
+      run: pip install .
+      #- name: Test
+      #run: python setup.py test
+    - name: Create binary
+      uses: JackMcKew/pyinstaller-action-linux@0.1.4
+      with:
+        path: teamscale_precommit_client
+    - name: 'Upload Artifact'
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: target-linux
+        path: ./dist/precommit_client
+        retention-days: 5
+
