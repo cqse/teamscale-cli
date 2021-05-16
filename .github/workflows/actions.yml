@@ -23,7 +23,6 @@ jobs:
     - name: Create binary
       run: |
         pip install .
-        pip install nuitka==0.6.14.7
         python -m nuitka --assume-yes-for-downloads --standalone --onefile --linux-onefile-icon /usr/share/pixmaps/python3.xpm teamscale_precommit_client/precommit_client.py
         mv precommit_client.bin teamscale-cli
     - name: 'Upload Artifact'
@@ -53,9 +52,7 @@ jobs:
     - name: Create binary
       run: |
         pip install .
-        pip install nuitka==0.6.14.7
         python -m nuitka --assume-yes-for-downloads --mingw64 --standalone teamscale_precommit_client/precommit_client.py
-        tree
         mv ./precommit_client.dist ./teamscale-cli
         mv ./teamscale-cli/precommit_client.exe ./teamscale-cli/teamscale-cli.exe
     - name: 'Upload Artifact'
