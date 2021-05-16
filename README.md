@@ -6,16 +6,8 @@ The [Teamscale](https://teamscale.com) pre-commit command line interface allows 
 
 **This guide uses `pip` and `python`. If you prefer Python 3, you'll probably have to replace all occurrences with `pip3` and `python3`.**
 
-1. Install `teamscale-cli` via pip:
-
-    ```bash
-    $ pip install teamscale-cli
-    ```
-
-    The `teamscale-cli` executable will be installed to `~/.local/bin/teamscale-cli`. Please ensure it is on your `PATH`.
-
+1. Install [the latest release](https://github.com/cqse/teamscale-cli/releases/latest).
 2. Copy the example configuration file [.teamscale-precommit.config](./config/.teamscale-precommit.config) to the root directory of the repository you want to analyze. Edit it and insert all the necessary data. You can find your personal access token by opening Teamscale and clicking on your Avatar in the top right corner.
-
 3. Use `teamscale-cli` as a compile or build command in your editor. See below for instructions for
     [sample configurations for some editors and IDEs below](#instructions-for-popular-editors).
     Provide a file or folder within your repository as input. The general invocation looks like this:
@@ -23,6 +15,8 @@ The [Teamscale](https://teamscale.com) pre-commit command line interface allows 
     ```bash
     $ teamscale-cli [OPTIONS] CURRENTLY_OPENED_EDITOR_FILE
     ```
+
+If you already have a Python installation, you may alternatively install `teamscale-cli` via `pip install teamscale-cli`.
 
 ## How it works
 

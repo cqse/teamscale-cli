@@ -18,6 +18,8 @@ jobs:
       with:
         python-version: '3.x'
         architecture: 'x64'
+    - name: Run test
+      run: python setup.py test
     # we do not use the available GitHub action as that does not support building
     # entrypoints that are not located in the root folder of the repo at the moment
     - name: Create binary
@@ -43,12 +45,14 @@ jobs:
       with:
         python-version: '3.x'
         architecture: 'x64'
-    # We do not use --onefile for Windows builds as unpacking the exe to a temp directory
-    # is _super_ slow on Windows and performance is key for precommit
+    - name: Run test
+      run: python setup.py test
     - name: Set up MinGW
       uses: egor-tensin/setup-mingw@v2
       with:
         platform: x64
+    # We do not use --onefile for Windows builds as unpacking the exe to a temp directory
+    # is _super_ slow on Windows and performance is key for precommit
     - name: Create binary
       run: |
         pip install .
