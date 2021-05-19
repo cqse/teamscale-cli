@@ -60,12 +60,14 @@ jobs:
         python -m nuitka --assume-yes-for-downloads --mingw64 --standalone teamscale_precommit_client/precommit_client.py
         mv ./precommit_client.dist ./teamscale-cli
         mv ./teamscale-cli/precommit_client.exe ./teamscale-cli/teamscale-cli.exe
+        mkdir target
+        mv teamscale-cli target
     - name: 'Upload Artifact'
       if: ${{ always() }}
       uses: actions/upload-artifact@v2
       with:
         name: target-windows
-        path: ./teamscale-cli
+        path: ./target
         retention-days: 5
 
   release:
@@ -79,7 +81,6 @@ jobs:
       - uses: actions/download-artifact@v2
       - name: Package
         run: |
-          tree
           (cd ./target-linux && chmod +x ./teamscale-cli && zip ../teamscale-cli-linux.zip ./teamscale-cli)
           (cd ./target-windows && zip -r ../teamscale-cli-windows.zip .)
       - name: Upload Release Assets
