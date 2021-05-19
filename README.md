@@ -163,3 +163,9 @@ python setup.py build
 python setup.py test
 ```
 
+## Releasing
+
+1. Create a GitHub release with the current Teamscale version number.
+2. A GitHub action will automatically be triggered that builds the released branch and attaches the binaries to the release.
+3. Contact Thomas Kinnen to perform the release to PyPI.
+
