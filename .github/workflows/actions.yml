@@ -79,8 +79,9 @@ jobs:
       - uses: actions/download-artifact@v2
       - name: Package
         run: |
+          tree
           (cd ./target-linux && chmod +x ./teamscale-cli && zip ../teamscale-cli-linux.zip ./teamscale-cli)
-          (cd ./target-windows && zip -r ../teamscale-cli-windows.zip ./teamscale-cli)
+          (cd ./target-windows && zip -r ../teamscale-cli-windows.zip .)
       - name: Upload Release Assets
         id: create_release
         uses: svenstaro/upload-release-action@v2
