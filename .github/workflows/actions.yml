@@ -1,0 +1,94 @@
+name: Build
+
+on:
+  push:
+    branches: '*'
+    tags: 'v*'
+  pull_request:
+    branches: '*'
+
+jobs:
+  build-linux:
+    name: Linux Build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v2.2.2
+      with:
+        python-version: '3.x'
+        architecture: 'x64'
+    - name: Run test
+      run: python setup.py test
+    # we do not use the available GitHub action as that does not support building
+    # entrypoints that are not located in the root folder of the repo at the moment
+    - name: Create binary
+      run: |
+        pip install .
+        python -m nuitka --assume-yes-for-downloads --standalone --onefile --linux-onefile-icon /usr/share/pixmaps/python3.xpm teamscale_precommit_client/precommit_client.py
+        mv precommit_client.bin teamscale-cli
+    - name: 'Upload Artifact'
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: target-linux
+        path: ./teamscale-cli
+        retention-days: 5
+
+  build-windows:
+    name: Windows Build
+    runs-on: windows-2019
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v2.2.2
+      with:
+        python-version: '3.x'
+        architecture: 'x64'
+    # Disabled since tests currently fail on Windows, see TS-27090
+    #- name: Run test
+    # run: python setup.py test
+    - name: Set up MinGW
+      uses: egor-tensin/setup-mingw@v2
+      with:
+        platform: x64
+    # We do not use --onefile for Windows builds as unpacking the exe to a temp directory
+    # is _super_ slow on Windows and performance is key for precommit
+    - name: Create binary
+      run: |
+        pip install .
+        python -m nuitka --assume-yes-for-downloads --mingw64 --standalone teamscale_precommit_client/precommit_client.py
+        mv ./precommit_client.dist ./teamscale-cli
+        mv ./teamscale-cli/precommit_client.exe ./teamscale-cli/teamscale-cli.exe
+        mkdir target
+        mv teamscale-cli target
+    - name: 'Upload Artifact'
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: target-windows
+        path: ./target
+        retention-days: 5
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: 
+      - build-windows
+      - build-linux
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v2
+      - name: Package
+        run: |
+          (cd ./target-linux && chmod +x ./teamscale-cli && zip ../teamscale-cli-linux.zip ./teamscale-cli)
+          (cd ./target-windows && zip -r ../teamscale-cli-windows.zip .)
+      - name: Upload Release Assets
+        id: create_release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref }}
+          file: teamscale-cli-*.zip
+          file_glob: true
+          overwrite: true
