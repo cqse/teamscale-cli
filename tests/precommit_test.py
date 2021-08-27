@@ -159,11 +159,14 @@ class PrecommitClientTest(TestCase):
         self.precommit_client.run()
 
         precommit_request = next(call.request for call in responses.calls if call.request.method == 'PUT')
+        
+        # Unescaping double slashes for the tests to succeed on windows 
+        precommit_request_body = precommit_request.body.replace('\\\\', '\\')
 
-        self.assertIn(changed_file_in_project, precommit_request.body)
-        self.assertNotIn(changed_file_outside_project, precommit_request.body)
-        self.assertIn(deleted_file_in_project, precommit_request.body)
-        self.assertNotIn(deleted_file_outside_project, precommit_request.body)
+        self.assertIn(changed_file_in_project, precommit_request_body)
+        self.assertNotIn(changed_file_outside_project, precommit_request_body)
+        self.assertIn(deleted_file_in_project, precommit_request_body)
+        self.assertNotIn(deleted_file_outside_project, precommit_request_body)
 
     @responses.activate
     def test_only_print_findings_in_project_subpath(self):
@@ -188,23 +191,26 @@ class PrecommitClientTest(TestCase):
         path_prefix = 'prefix'
         self.precommit_client = self._get_precommit_client(self._get_changed_file(),
                                                            [DELETED_FILE_NAME], path_prefix=path_prefix)
-        self.mock_precommit_findings_churn(added_findings=[1], path_prefix=path_prefix + '/')
+        self.mock_precommit_findings_churn(added_findings=[1], path_prefix=os.path.join(path_prefix, ''))
         self.precommit_client.run()
 
-        changed_file_path_with_prefix = path_prefix + '/' + ANALYZED_FILE_NAME
-        deleted_file_path_with_prefix = path_prefix + '/' + DELETED_FILE_NAME
+        changed_file_path_with_prefix = os.path.join(path_prefix, ANALYZED_FILE_NAME)
+        deleted_file_path_with_prefix = os.path.join(path_prefix, DELETED_FILE_NAME)
         precommit_request = next(call.request for call in responses.calls if call.request.method == 'PUT')
+        
+        # Unescaping double slashes for the tests to succeed on windows
+        precommit_request_body = precommit_request.body.replace('\\\\', '\\')
 
         # Check if the path prefix was applied and sent correctly in the request's body
-        self.assertIn(changed_file_path_with_prefix, precommit_request.body)
-        self.assertIn(deleted_file_path_with_prefix, precommit_request.body)
+        self.assertIn(changed_file_path_with_prefix, precommit_request_body)
+        self.assertIn(deleted_file_path_with_prefix, precommit_request_body)
 
     @responses.activate
     def test_stripping_path_prefix(self):
         path_prefix = 'prefix'
         self.precommit_client = self._get_precommit_client(self._get_changed_file(),
                                                            [DELETED_FILE_NAME], path_prefix=path_prefix)
-        self.mock_precommit_findings_churn(added_findings=[1], path_prefix=path_prefix + '/')
+        self.mock_precommit_findings_churn(added_findings=[1], path_prefix=os.path.join(path_prefix, ''))
 
         captured_output = StringIO()
         sys.stdout = captured_output
@@ -342,7 +348,7 @@ class PrecommitClientTest(TestCase):
         for finding_number in findings_number_list:
             findings_dict = {'id': str(finding_number), 'typeId': 'id%i' % finding_number,
                              'message': 'message%i' % finding_number, 'assessment': 'RED',
-                             'location': {'uniformPath': path_prefix + ANALYZED_FILE_NAME,
+                             'location': {'uniformPath': os.path.join(path_prefix, ANALYZED_FILE_NAME),
                                           'rawStartLine': finding_number}}
             findings_dicts.append(findings_dict)
         return findings_dicts
