@@ -27,6 +27,18 @@ def get_current_branch(path_to_repository):
     return repo.active_branch.name
 
 
+def get_current_commit_sha(path_to_repository):
+    """Get the commit SHA (ID) of the current commit
+
+        Args:
+            path_to_repository (str): Path to the Git repository
+
+        Returns:
+            str: SHA of current commit.
+    """
+    return Repo(path_to_repository).active_branch.commit.hexsha
+
+
 def get_repo_root_from_file_in_repo(path_to_file_in_repo):
     """Get the repository root for the given path in the repository."""
     try:

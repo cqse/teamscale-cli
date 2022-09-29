@@ -20,7 +20,7 @@ setup(
         ]
     },
     install_requires=[
-        'teamscale-client==6.7.1',
+        'teamscale-client==7.1.1',
         'gitpython==2.1.15',
 
         # Required for gitpython, build fails without specifying a fixed version.

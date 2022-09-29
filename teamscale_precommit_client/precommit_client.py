@@ -14,7 +14,7 @@ from teamscale_client import TeamscaleClient
 from teamscale_precommit_client.client_configuration_utils import get_teamscale_client_configuration
 from teamscale_precommit_client.data import PreCommitUploadData
 from teamscale_precommit_client.git_utils import get_changed_files_and_content, get_deleted_files
-from teamscale_precommit_client.git_utils import get_current_branch, get_current_timestamp
+from teamscale_precommit_client.git_utils import get_current_branch, get_current_timestamp, get_current_commit_sha
 from teamscale_precommit_client.git_utils import get_repo_root_from_file_in_repo
 
 # Filename of the precommit configuration. The client expects this config file at the root of the repository.
@@ -205,7 +205,8 @@ class PrecommitClient:
         uniform_path = os.path.join(self.path_prefix, uniform_path)
         if self.fetch_all_findings:
             uniform_path = ''
-        self.existing_findings = self.teamscale_client.get_findings(uniform_path=uniform_path, timestamp=None)
+        self.existing_findings = self.teamscale_client.get_findings(uniform_path=uniform_path, timestamp=None,
+                                                                    revision_id=self._get_commit_hash())
         self._remove_precommit_findings_from_existing_findings()
 
     def _remove_precommit_findings_from_existing_findings(self):
@@ -263,6 +264,10 @@ class PrecommitClient:
     def _get_finding_severity_message(finding):
         """Formats the given finding's assessment as severity."""
         return 'error' if finding.assessment == 'RED' else 'warning'
+
+    def _get_commit_hash(self):
+        """Obtains the current commit SHA"""
+        return get_current_commit_sha(self.repository_path)
 
 
 def _parse_args():
