@@ -13,7 +13,6 @@ from git import Repo, InvalidGitRepositoryError
 _CHANGE_TYPES_CONSIDERED_FOR_PRECOMMIT = ['M', 'A', 'C', 'T', 'R', 'R092']
 _CHANGE_TYPE_DELETED = 'D'
 
-
 def get_current_branch(path_to_repository):
     """Utility method for getting the current branch from a Git repository.
 
