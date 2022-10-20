@@ -29,6 +29,7 @@ ANALYZED_FILE_NAME = 'file.ext'
 ANALYZED_FILE_PATH = REPO_PATH + ANALYZED_FILE_NAME
 DELETED_FILE_NAME = 'deletedFile.ext'
 CURRENT_BRANCH = 'my_feature_branch'
+REVISION = 'mockRevision'
 
 
 class PrecommitClientTest(TestCase):
@@ -271,6 +272,10 @@ class PrecommitClientTest(TestCase):
         Findings can be provided as list of integers each of which represents a finding instance."""
         existing_findings_from_current_branch = to_json(
             PrecommitClientTest._get_findings_as_dicts(existing_findings, path_prefix))
+        responses.add(responses.GET,
+                      PrecommitClientTest.get_project_service_mock('repository-timestamp-by-revision', REVISION),
+                      body=to_json([{'branchName': branch, 'timestamp': 'HEAD'}]), status=200,
+                      content_type='application/json')
         responses.add(responses.GET, PrecommitClientTest.get_project_service_mock('findings', branch),
                       body=existing_findings_from_current_branch, status=200,
                       content_type="application/json", )
@@ -307,6 +312,7 @@ class PrecommitClientTest(TestCase):
         precommit_client.changed_files = changed_files
         precommit_client.deleted_files = deleted_files
         PrecommitClient.PRECOMMIT_WAITING_TIME_IN_SECONDS = 0
+        precommit_client._get_commit_hash = Mock(return_value=REVISION)
 
         return precommit_client
 

@@ -25,7 +25,7 @@ jobs:
     - name: Create binary
       run: |
         pip install .
-        python -m nuitka --assume-yes-for-downloads --standalone --onefile --linux-onefile-icon /usr/share/pixmaps/python3.xpm teamscale_precommit_client/precommit_client.py
+        python -m nuitka --assume-yes-for-downloads --standalone --onefile --linux-onefile-icon=/usr/share/pixmaps/python3.xpm teamscale_precommit_client/precommit_client.py
         mv precommit_client.bin teamscale-cli
     - name: 'Upload Artifact'
       if: ${{ always() }}
