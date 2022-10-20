@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="teamscale-cli",
-    version="7.1.0",
+    version="7.1.1",
     author="Thomas Kinnen - CQSE GmbH",
     author_email="kinnen@cqse.eu",
     description=("Client for performing precommit analysis with Teamscale."),
@@ -20,7 +20,7 @@ setup(
         ]
     },
     install_requires=[
-        'teamscale-client==6.7.1',
+        'teamscale-client==7.1.1',
         'gitpython==2.1.15',
 
         # Required for gitpython, build fails without specifying a fixed version.
@@ -29,7 +29,7 @@ setup(
         'gitdb2==2.0.6',
 
         # Required to compile to a native binary
-        'nuitka==0.6.14.7'
+        'nuitka==1.1.5'
     ],
     tests_require=[
         'teamscale-client',
