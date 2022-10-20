@@ -12,9 +12,9 @@ jobs:
     name: Linux Build
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Setup Python
-      uses: actions/setup-python@v2.2.2
+      uses: actions/setup-python@v4.3.0
       with:
         python-version: '3.x'
         architecture: 'x64'
@@ -29,7 +29,7 @@ jobs:
         mv precommit_client.bin teamscale-cli
     - name: 'Upload Artifact'
       if: ${{ always() }}
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3.1.0
       with:
         name: target-linux
         path: ./teamscale-cli
@@ -39,9 +39,9 @@ jobs:
     name: Windows Build
     runs-on: windows-2019
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Setup Python
-      uses: actions/setup-python@v2.2.2
+      uses: actions/setup-python@v4.3.0
       with:
         python-version: '3.x'
         architecture: 'x64'
@@ -63,7 +63,7 @@ jobs:
         mv teamscale-cli target
     - name: 'Upload Artifact'
       if: ${{ always() }}
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3.1.0
       with:
         name: target-windows
         path: ./target
@@ -77,7 +77,7 @@ jobs:
     name: Create Release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
       - name: Package
         run: |
           (cd ./target-linux && chmod +x ./teamscale-cli && zip ../teamscale-cli-linux.zip ./teamscale-cli)
