@@ -11,6 +11,7 @@
             },
             "problemMatcher": {
                 "fileLocation": ["absolute"],
+                "owner": "teamscale",
                 "pattern": {
                     "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
                     "file": 1,
