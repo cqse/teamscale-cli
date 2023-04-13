@@ -21,7 +21,7 @@ setup(
     },
     install_requires=[
         'teamscale-client==7.1.1',
-        'gitpython==2.1.15',
+        'gitpython==3.1.30',
 
         # Required for gitpython, build fails without specifying a fixed version.
         # 2.0.6 is the latest version working with python 2.7 according to
@@ -29,7 +29,7 @@ setup(
         'gitdb2==2.0.6',
 
         # Required to compile to a native binary
-        'nuitka==1.1.5'
+        'nuitka==1.5.5'
     ],
     tests_require=[
         'teamscale-client',
