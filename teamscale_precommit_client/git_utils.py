@@ -6,7 +6,7 @@ import locale
 import os
 from io import open
 
-from git import Repo, InvalidGitRepositoryError
+from git import Repo, InvalidGitRepositoryError, Diffable
 
 # [M]odified, [A]dded, [C]opied, [T]ype changed, [R]enamed (R092 should be R according to
 # https://gitpython.readthedocs.io/en/stable/reference.html#git.diff.DiffIndex, but testing it locally gave R092)
@@ -74,6 +74,9 @@ def filter_changed_files(changed_files, path_to_repository, file_encoding):
     filtered_files = []
     for changed_file in changed_files:
         file_is_valid = True
+        if (os.path.isdir(os.path.join(path_to_repository, changed_file))):
+            #ignore directories (e.g., git submodule folders)
+            continue
         if os.path.getsize(os.path.join(path_to_repository, changed_file)) > 1 * 1024 * 1024:
             print('File too large for precommit analysis. Ignoring: %s' % changed_file)
             file_is_valid = False
@@ -97,7 +100,7 @@ def filter_changed_files(changed_files, path_to_repository, file_encoding):
     return filtered_files
 
 
-def get_changed_files_and_content(path_to_repository, file_encoding):
+def get_changed_files_and_content(path_to_repository, file_encoding, ignore_subrepositories):
     """Utility method for getting the currently changed files from a Git repository.
 
     Filters the changed files using `filter_changed_files`.
@@ -108,13 +111,15 @@ def get_changed_files_and_content(path_to_repository, file_encoding):
 
         Returns:
             dict: Mapping of filename to file content for all changed files in the provided repository.
+            :param ignore_subrepositories:
     """
-    changed_files = filter_changed_files(get_changed_files(path_to_repository), path_to_repository, file_encoding)
+    changed_files = filter_changed_files(get_changed_files(path_to_repository, ignore_subrepositories),
+                                         path_to_repository, file_encoding)
     return {filename: open(os.path.join(path_to_repository, filename), encoding=file_encoding).read() for filename in
             changed_files}
 
 
-def get_changed_files(path_to_repository):
+def get_changed_files(path_to_repository, ignore_subrepositories):
     """Utility method for getting the currently changed files from a Git repository.
 
         Args:
@@ -123,11 +128,11 @@ def get_changed_files(path_to_repository):
         Returns:
             List(str): List of filenames of all changed files in the provided repository.
     """
-    diff = _get_diff_to_last_commit(path_to_repository)
+    diff = _get_diff_to_last_commit(path_to_repository, ignore_subrepositories)
     return [item.b_path for item in diff if item.change_type in _CHANGE_TYPES_CONSIDERED_FOR_PRECOMMIT]
 
 
-def get_deleted_files(path_to_repository):
+def get_deleted_files(path_to_repository, ignore_subrepositories):
     """Utility method for getting the deleted files from a Git repository.
 
         Args:
@@ -136,11 +141,11 @@ def get_deleted_files(path_to_repository):
         Returns:
             List(str): List of filenames of all deleted files in the provided repository.
     """
-    diff = _get_diff_to_last_commit(path_to_repository)
+    diff = _get_diff_to_last_commit(path_to_repository, ignore_subrepositories)
     return [item.b_path for item in diff if item.change_type == _CHANGE_TYPE_DELETED]
 
 
-def _get_diff_to_last_commit(path_to_repository):
+def _get_diff_to_last_commit(path_to_repository, ignore_subrepositories):
     """ Utility method for getting a diff between the working copy and the HEAD commit
 
         Args:
@@ -150,6 +155,11 @@ def _get_diff_to_last_commit(path_to_repository):
             List(git.diff.Diff): List of Diff objects for every file
     """
     repo = Repo(path_to_repository)
-    unstaged_diff = repo.index.diff(None)
-    staged_diff = repo.head.commit.diff()
+    if ignore_subrepositories==True:
+        unstaged_diff = repo.index.diff(other=None, paths=None, create_patch=False, ignore_submodules="all")
+        staged_diff = repo.head.commit.diff(other=Diffable.Index, paths=None, create_patch=False, ignore_submodules="all")
+    else:
+        unstaged_diff = repo.index.diff(other=None, paths=None, create_patch=False)
+        staged_diff = repo.head.commit.diff(other=Diffable.Index, paths=None, create_patch=False)
+
     return unstaged_diff + staged_diff

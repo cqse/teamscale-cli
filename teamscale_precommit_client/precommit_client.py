@@ -32,7 +32,8 @@ class PrecommitClient:
     def __init__(self, teamscale_config, repository_path, path_prefix=DEFAULT_PATH_PREFIX, project_subpath='',
                  analyzed_file=None, verify=True, omit_links_to_findings=False, exclude_findings_in_changed_code=False,
                  fetch_existing_findings=False, fetch_all_findings=False, fetch_existing_findings_in_changes=False,
-                 fail_on_red_findings=False, log_to_stderr=False, file_encoding=DEFAULT_FILE_ENCODING):
+                 fail_on_red_findings=False, log_to_stderr=False, file_encoding=DEFAULT_FILE_ENCODING,
+                 ignore_subrepositories=False):
         """Constructor"""
         self.teamscale_client = TeamscaleClient(teamscale_config.url, teamscale_config.username,
                                                 teamscale_config.access_token, teamscale_config.project_id, verify)
@@ -59,6 +60,7 @@ class PrecommitClient:
         self.current_branch = ''
         self.parent_commit_timestamp = 0
         self.file_encoding = file_encoding
+        self.ignore_subrepositories = ignore_subrepositories
 
     def run(self):
         """Performs the precommit analysis. Depending on the modifications made and the flags provided to the client,
@@ -89,8 +91,9 @@ class PrecommitClient:
         if not self.repository_path or not os.path.exists(self.repository_path) or not os.path.isdir(
                 self.repository_path):
             raise RuntimeError('Invalid path to file in repository: %s' % self.repository_path)
-        self.changed_files = get_changed_files_and_content(self.repository_path, self.file_encoding)
-        self.deleted_files = get_deleted_files(self.repository_path)
+        self.changed_files = get_changed_files_and_content(self.repository_path, self.file_encoding,
+                                                           self.ignore_subrepositories)
+        self.deleted_files = get_deleted_files(self.repository_path, self.ignore_subrepositories)
 
     def _retrieve_current_branch(self):
         """Retrieves the current branch from the repository."""
@@ -315,8 +318,12 @@ def _parse_args():
     parser.add_argument('--file-encoding', metavar='FILE_ENCODING', type=str,
                         help='The encoding of your files '
                              '(c.f. https://docs.python.org/3/library/codecs.html#standard-encodings).'
-                             ' By default, the system encoding will be used.',
-                        default=DEFAULT_FILE_ENCODING)
+                             ' By default, the system encoding will be used.', default=DEFAULT_FILE_ENCODING)
+    parser.add_argument('--ignore-subrepositories', dest='ignore_subrepositories', action='store_const', const=True, default=False,
+                        help='When this option is set, then we ignore subrepositories '
+                             '(git submodules) in the current repository when determining which files changed. This '
+                             'affects the files considered for precommit analysis. It does not affect the retrieval '
+                             'of "existing" findings from the Teamscale server.')
     return parser.parse_args()
 
 
@@ -344,7 +351,8 @@ def _configure_precommit_client(parsed_args):
                            fetch_existing_findings_in_changes=parsed_args.fetch_existing_findings_in_changes,
                            fail_on_red_findings=parsed_args.fail_on_red_findings,
                            log_to_stderr=parsed_args.log_to_stderr,
-                           file_encoding=parsed_args.file_encoding)
+                           file_encoding=parsed_args.file_encoding,
+                           ignore_subrepositories=parsed_args.ignore_subrepositories)
 
 
 def run():
