@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="teamscale-cli",
-    version="8.7.5",
+    version="8.8.0",
     author="Thomas Kinnen - CQSE GmbH",
     author_email="kinnen@cqse.eu",
     description=("Client for performing precommit analysis with Teamscale."),
