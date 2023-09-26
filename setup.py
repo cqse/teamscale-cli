@@ -26,7 +26,7 @@ setup(
         'gitdb2==4.0.2',
 
         # Required to compile to a native binary
-        'nuitka==1.5.5'
+        'nuitka==1.8.2'
     ],
     tests_require=[
         'teamscale-client',
