@@ -20,6 +20,7 @@ from teamscale_precommit_client.git_utils import get_repo_root_from_file_in_repo
 # Filename of the precommit configuration. The client expects this config file at the root of the repository.
 PRECOMMIT_CONFIG_FILENAME = '.teamscale-precommit.config'
 DEFAULT_PROJECT_SUBPATH = ''
+DEFAULT_OVERRIDE_BRANCH = ''
 DEFAULT_PATH_PREFIX = ''
 DEFAULT_FILE_ENCODING = None  # Use system encoding
 
@@ -33,7 +34,7 @@ class PrecommitClient:
                  analyzed_file=None, verify=True, omit_links_to_findings=False, exclude_findings_in_changed_code=False,
                  fetch_existing_findings=False, fetch_all_findings=False, fetch_existing_findings_in_changes=False,
                  fail_on_red_findings=False, log_to_stderr=False, file_encoding=DEFAULT_FILE_ENCODING,
-                 ignore_subrepositories=False):
+                 ignore_subrepositories=False, override_branch=DEFAULT_OVERRIDE_BRANCH):
         """Constructor"""
         self.teamscale_client = TeamscaleClient(teamscale_config.url, teamscale_config.username,
                                                 teamscale_config.access_token, teamscale_config.project_id, verify)
@@ -61,6 +62,7 @@ class PrecommitClient:
         self.parent_commit_timestamp = 0
         self.file_encoding = file_encoding
         self.ignore_subrepositories = ignore_subrepositories
+        self.override_branch = override_branch
 
     def run(self):
         """Performs the precommit analysis. Depending on the modifications made and the flags provided to the client,
@@ -97,7 +99,10 @@ class PrecommitClient:
 
     def _retrieve_current_branch(self):
         """Retrieves the current branch from the repository."""
-        self.current_branch = get_current_branch(self.repository_path)
+        if self.override_branch:
+            self.current_branch = self.override_branch
+        else:
+            self.current_branch = get_current_branch(self.repository_path)
 
     def _retrieve_parent_commit_timestamp(self):
         """Retrieves the commit timestamp from the repository."""
@@ -324,6 +329,9 @@ def _parse_args():
                              '(git submodules) in the current repository when determining which files changed. This '
                              'affects the files considered for precommit analysis. It does not affect the retrieval '
                              'of "existing" findings from the Teamscale server.')
+    parser.add_argument('--override-branch', metavar='override-branch', type=str, default=DEFAULT_OVERRIDE_BRANCH,
+                        help='Override branch name to be used. '
+                             'Allows to use local branches that are not known to Teamscale server.')
     return parser.parse_args()
 
 
@@ -352,7 +360,8 @@ def _configure_precommit_client(parsed_args):
                            fail_on_red_findings=parsed_args.fail_on_red_findings,
                            log_to_stderr=parsed_args.log_to_stderr,
                            file_encoding=parsed_args.file_encoding,
-                           ignore_subrepositories=parsed_args.ignore_subrepositories)
+                           ignore_subrepositories=parsed_args.ignore_subrepositories,
+                           override_branch=parsed_args.override_branch)
 
 
 def run():
