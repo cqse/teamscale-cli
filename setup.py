@@ -23,7 +23,7 @@ setup(
         'teamscale-client==7.1.1',
         'gitpython==3.1.35',
 
-        'gitdb2==4.0.10',
+        'gitdb2==4.0.2',
 
         # Required to compile to a native binary
         'nuitka==1.5.5'
