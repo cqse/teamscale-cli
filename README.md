@@ -1,4 +1,4 @@
-# Teamscale Pre-Commit Command Line Client [![Build Status](https://travis-ci.org/cqse/teamscale-cli.svg?branch=master)](https://travis-ci.org/cqse/teamscale-cli) [![PyPI version](https://badge.fury.io/py/teamscale-cli.svg)](https://badge.fury.io/py/teamscale-cli) [![Teamscale Project](https://img.shields.io/badge/teamscale-teamscale--cli-brightgreen.svg)](https://demo.teamscale.com/activity.html#/teamscale-cli)
+# Teamscale Pre-Commit Command Line Client [![PyPI version](https://badge.fury.io/py/teamscale-cli.svg)](https://badge.fury.io/py/teamscale-cli) [![Teamscale Project](https://img.shields.io/badge/teamscale-teamscale--cli-brightgreen.svg)](https://demo.teamscale.com/activity.html#/teamscale-cli)
 
 The [Teamscale](https://teamscale.com) pre-commit command line interface (CLI) allows you to integrate pre-commit analysis in editors or IDEs such as VS Code, Emacs, QtCreator or Sublime by providing findings in a standard error format that is interpreted and displayed like compile errors by these editors.
 
