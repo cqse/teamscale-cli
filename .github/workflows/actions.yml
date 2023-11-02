@@ -51,7 +51,8 @@ jobs:
     - name: Run test
       run: python setup.py test
     - name: Set up MinGW
-      uses: egor-tensin/setup-mingw@v2.2.0
+      # as long as the following pull request is not merged, we need to use its branch instead of the official release.
+      uses: e-t-l/setup-mingw@patch-1 #official release: egor-tensin/setup-mingw@v2.2.0
       with:
         platform: x64
     # We do not use --onefile for Windows builds as unpacking the exe to a temp directory
