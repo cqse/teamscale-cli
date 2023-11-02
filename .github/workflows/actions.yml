@@ -14,17 +14,18 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Setup Python
-      uses: actions/setup-python@v4.3.0
+      uses: actions/setup-python@v4.7.1
       with:
-        python-version: '3.x'
+        python-version: '3.11'
         architecture: 'x64'
+    - name: Install packages
+      run: pip install .
     - name: Run test
       run: python setup.py test
     # we do not use the available GitHub action as that does not support building
     # entrypoints that are not located in the root folder of the repo at the moment
     - name: Create binary
       run: |
-        pip install .
         python -m nuitka --assume-yes-for-downloads --standalone --onefile --linux-onefile-icon=/usr/share/pixmaps/python3.xpm teamscale_precommit_client/precommit_client.py
         mv precommit_client.bin teamscale-cli
     - name: 'Upload Artifact'
@@ -41,7 +42,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Setup Python
-      uses: actions/setup-python@v4.3.0
+      uses: actions/setup-python@v4.7.1
       with:
         python-version: '3.x'
         architecture: 'x64'
