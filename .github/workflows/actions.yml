@@ -51,7 +51,7 @@ jobs:
     - name: Run test
       run: python setup.py test
     - name: Set up MinGW
-      uses: egor-tensin/setup-mingw@v2
+      uses: egor-tensin/setup-mingw@v2.2.0
       with:
         platform: x64
     # We do not use --onefile for Windows builds as unpacking the exe to a temp directory
