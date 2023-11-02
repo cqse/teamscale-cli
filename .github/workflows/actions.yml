@@ -58,7 +58,6 @@ jobs:
     # is _super_ slow on Windows and performance is key for precommit
     - name: Create binary
       run: |
-        pip install .
         python -m nuitka --assume-yes-for-downloads --mingw64 --standalone teamscale_precommit_client/precommit_client.py
         mv ./precommit_client.dist ./teamscale-cli
         mv ./teamscale-cli/precommit_client.exe ./teamscale-cli/teamscale-cli.exe
