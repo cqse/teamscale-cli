@@ -18,6 +18,9 @@ jobs:
       with:
         python-version: '3.x'
         architecture: 'x64'
+        cache: 'pip'
+    - name: Install setuptools
+      run: python -m pip install setuptools
     - name: Run test
       run: python setup.py test
     # we do not use the available GitHub action as that does not support building
