@@ -16,15 +16,16 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v4.3.0
       with:
-        python-version: '3.x'
+        python-version: '3.11'
         architecture: 'x64'
+    - name: Install dependencies
+      run: pip install .
     - name: Run test
       run: python setup.py test
     # we do not use the available GitHub action as that does not support building
     # entrypoints that are not located in the root folder of the repo at the moment
     - name: Create binary
       run: |
-        pip install .
         python -m nuitka --assume-yes-for-downloads --standalone --onefile --linux-onefile-icon=/usr/share/pixmaps/python3.xpm teamscale_precommit_client/precommit_client.py
         mv precommit_client.bin teamscale-cli
     - name: 'Upload Artifact'
@@ -43,19 +44,21 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v4.3.0
       with:
-        python-version: '3.x'
+        python-version: '3.11'
         architecture: 'x64'
+    - name: Install dependencies
+      run: pip install .
     - name: Run test
       run: python setup.py test
     - name: Set up MinGW
-      uses: egor-tensin/setup-mingw@v2
+      # as long as the following pull request is not merged, we need to use its branch instead of the official release.
+      uses: e-t-l/setup-mingw@patch-1 #official release: egor-tensin/setup-mingw@v2.2.0
       with:
         platform: x64
     # We do not use --onefile for Windows builds as unpacking the exe to a temp directory
     # is _super_ slow on Windows and performance is key for precommit
     - name: Create binary
       run: |
-        pip install .
         python -m nuitka --assume-yes-for-downloads --mingw64 --standalone teamscale_precommit_client/precommit_client.py
         mv ./precommit_client.dist ./teamscale-cli
         mv ./teamscale-cli/precommit_client.exe ./teamscale-cli/teamscale-cli.exe
