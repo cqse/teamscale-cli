@@ -21,7 +21,7 @@ setup(
     },
     install_requires=[
         'teamscale-client==7.1.1',
-        'gitpython==3.1.37',
+        'gitpython==3.1.41',
 
         'gitdb2==4.0.2',
 
