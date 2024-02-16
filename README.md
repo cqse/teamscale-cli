@@ -1,10 +1,11 @@
-# Teamscale Pre-Commit Command Line Client [![PyPI version](https://badge.fury.io/py/teamscale-cli.svg)](https://badge.fury.io/py/teamscale-cli) [![Teamscale Project](https://img.shields.io/badge/teamscale-teamscale--cli-brightgreen.svg)](https://demo.teamscale.com/activity.html#/teamscale-cli)
+# Teamscale Pre-Commit Command-Line Client [![PyPI version](https://badge.fury.io/py/teamscale-cli.svg)](https://badge.fury.io/py/teamscale-cli) [![Teamscale Project](https://img.shields.io/badge/teamscale-teamscale--cli-brightgreen.svg)](https://demo.teamscale.com/activity.html#/teamscale-cli)
 
-The [Teamscale](https://teamscale.com) pre-commit command line interface (CLI) allows you to integrate pre-commit analysis in editors or IDEs such as VS Code, Emacs, QtCreator or Sublime by providing findings in a standard error format that is interpreted and displayed like compile errors by these editors.
+The [Teamscale](https://teamscale.com) pre-commit command-line interface (CLI) allows you to integrate pre-commit analysis in editors or IDEs such as VS Code, Emacs, QtCreator or Sublime by providing findings in a standard error format that is interpreted and displayed like compile errors by these editors.
 
-**NOTE:**
-This version of Teamscale pre-commit CLI is being superseded by a more feature-rich [command-line client for Teamscale](https://docs.teamscale.com/reference/teamscale-cli/) that also supports [integrating with various IDEs and editors](https://docs.teamscale.com/getting-started/other-ides/).
-We recommend switching to the new client.
+> [!CAUTION]
+> The Teamscale Pre-Commit CLI (`teamscale-cli`) is **deprecated** since February 2024.
+> If using VS Code, please switch to our native [Teamscale Integration for Visual Studio Code](https://docs.teamscale.com/getting-started/visual-studio-code/).
+> If integrating pre-commit in another IDE, please switch to the more feature-rich [Teamscale Command-Line Client for Developers (`teamscale-dev`)](https://docs.teamscale.com/getting-started/other-ides/) as soon as possible.
 
 ## Installation
 
@@ -32,7 +33,7 @@ Path to file:line number:Column: (warning|error): Message
 
 This allows you to use the highlighting capabilities of your editors to highlight lines with findings in the editor and to jump to the finding location from the pre-commit console output. For your convenience, we've provided [sample configurations for some editors and IDEs below](#instructions-for-popular-editors).
 
-Which findings are output is controlled by several command line options:
+Which findings are output is controlled by several command-line options:
 
 ```
 teamscale-cli CURRENTLY_OPENED_EDITOR_FILE
@@ -72,7 +73,7 @@ Add a new *Build Phase* (`New Run Script Phase`) to your project. Enter the foll
 python -c 'from teamscale_precommit_client.precommit_client import run;run()' ${SRCROOT}
 ```
 
-This script uses `python` to execute the Teamscale precommit command line interface on the source of the project's Git repository (`SCROOT`). Make sure to use the correct Python version in that snippet, which might be `python3`. 
+This script uses `python` to execute the Teamscale precommit command-line interface on the source of the project's Git repository (`SCROOT`). Make sure to use the correct Python version in that snippet, which might be `python3`. 
 Also, keep in mind that `python` by default might point to Xcode's own copy of python. Hence, you might want to explicitly specify the python executable's path instead (e.g. `/usr/bin/python`).
 
 **In Xcode you cannot use `--fetch-existing-findings` since there is unfortunately no environment variable for the currently opened editor file.
@@ -113,7 +114,7 @@ Add a new build configuration:
 Then configure it as follows:  
 
 * Executable: `python`
-* Command line arguments: `-c "from teamscale_precommit_client.precommit_client import run;run()" --fetch-existing-findings --log-to-stderr %{CurrentDocument:FilePath}`
+* Command-line arguments: `-c "from teamscale_precommit_client.precommit_client import run;run()" --fetch-existing-findings --log-to-stderr %{CurrentDocument:FilePath}`
 
 The flag `--log-to-stderr` is required as otherwise QtCreator will not recognize the findings.  
 
